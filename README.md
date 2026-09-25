@@ -4,7 +4,7 @@
 
 ## انتشار رایگان با GitHub Pages
 1. در GitHub یک مخزن جدید **Public** بسازید، مثلاً `monopoly-web`. (مخزن اپ اندروید را Private نگه دارید؛ این مخزن جداست.)
-2. فایل‌های `index.html` و `sw.js` را آپلود کنید و Commit بزنید.
+2. فایل‌های `index.html`، `sw.js`، `icon-180.png` و `icon-512.png` را آپلود کنید و Commit بزنید.
 3. Settings ← Pages ← Source: **Deploy from a branch** ← Branch: `main` و پوشه `/ (root)` ← Save.
 4. بعد از یکی دو دقیقه آدرس صفحه نمایش داده می‌شود: `https://USERNAME.github.io/monopoly-web/`
 
