@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121A2B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>کارتخوان مونوپولی</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#121A2B; --raised:#1B2640; --raised2:#223050; --line:#2E3C5E;
+  --text:#F3F1EA; --muted:#98A3BC;
+  --deed:#F4EFE3; --deed-ink:#1C1C1C; --deed-head:#1F5FB8;
+  --red:#D7263D; --green:#1E9E5A; --blue:#2F6FE0; --orange:#F08A24; --gold:#E9B949;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --ink:#EDEAE1; --raised:#FFFFFF; --raised2:#F4F1E8; --line:#D6D0C2;
+    --text:#1B2233; --muted:#5E6679; color-scheme:light;
+  }
+}
+:root[data-theme="dark"]{ --ink:#121A2B; --raised:#1B2640; --raised2:#223050; --line:#2E3C5E; --text:#F3F1EA; --muted:#98A3BC; color-scheme:dark; }
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--ink);color:var(--text);
+  font-family:Vazirmatn,Tahoma,"Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.6;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.num{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.wrap{max-width:560px;margin:0 auto;padding:12px 16px 24px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:8px;
+  padding:10px 12px;background:var(--ink);border-bottom:1px solid var(--line)}
+.bar h1{flex:1;margin:0;font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon{border:0;background:transparent;width:44px;height:44px;border-radius:12px;font-size:22px;display:grid;place-items:center}
+.icon:active{background:var(--raised)}
+.wordmark{display:inline-block;background:var(--red);color:#fff;border:2px solid #fff;border-radius:6px;
+  padding:6px 20px;font-weight:900;letter-spacing:3px;font-size:24px;direction:ltr;font-family:"Arial Black",Vazirmatn,sans-serif}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;border-radius:14px;
+  border:0;padding:10px 16px;font-size:18px;font-weight:700;background:var(--raised2);color:var(--text)}
+.btn.primary{background:var(--gold);color:#1a1a1a}
+.btn.green{background:var(--green);color:#fff}.btn.red{background:var(--red);color:#fff}
+.btn.blue{background:var(--blue);color:#fff}.btn.orange{background:var(--orange);color:#1a1a1a}
+.btn.ghost{background:transparent;border:1.5px solid var(--line)}
+.btn.ghost.red{border-color:var(--red);color:var(--red);background:transparent}
+.btn.ghost.blue{border-color:var(--blue);color:var(--blue);background:transparent}
+.btn:disabled{opacity:.4}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.stack>*+*{margin-top:10px}
+.list{background:var(--raised);border-radius:16px;overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);width:100%;
+  background:transparent;border-left:0;border-right:0;border-top:0;text-align:right}
+.item:last-child{border-bottom:0}
+.item .grow{flex:1;min-width:0}
+.item .t{font-weight:700;font-size:17px}
+.item .s{font-size:13.5px;color:var(--muted)}
+label.f{display:block;margin:12px 0 4px;font-size:14px;color:var(--muted)}
+.inp{width:100%;min-height:50px;border-radius:12px;border:1.5px solid var(--line);background:var(--raised);
+  padding:10px 12px;font-size:18px}
+.inp:focus{border-color:var(--gold);outline:none}
+.sw{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.sw:last-child{border-bottom:0}
+.sw .grow{flex:1}
+.sw input{width:24px;height:24px;accent-color:var(--gold)}
+h2.sec{font-size:15px;color:var(--gold);margin:22px 4px 8px;font-weight:700}
+/* ready screen */
+.ready{min-height:calc(100dvh - 190px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:10px 0}
+.clock{font-size:56px;font-weight:300;line-height:1.1}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:40px;background:var(--raised);border:1px solid var(--line)}
+.tapme{font-size:27px;font-weight:900;margin-top:6px}
+.nfc{width:110px;height:110px;border-radius:50%;display:grid;place-items:center;margin:16px auto 4px;position:relative;font-size:48px}
+.nfc::before,.nfc::after{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid var(--gold);opacity:0;animation:ring 2.2s infinite}
+.nfc::after{animation-delay:1.1s}
+@keyframes ring{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.35);opacity:0}}
+@media (prefers-reduced-motion: reduce){.nfc::before,.nfc::after{animation:none;opacity:.5}}
+.foot{position:sticky;bottom:0;background:var(--ink);padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.ver{text-align:center;font-size:12.5px;color:var(--muted);margin-top:6px;background:none;border:0;width:100%}
+/* deed card */
+.deed{background:var(--deed);color:var(--deed-ink);border-radius:10px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.35);border:2px solid #fff}
+.deed .head{background:var(--deed-head);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.deed .head .n{flex:1;font-size:25px;font-weight:900}
+.deed .body{padding:14px 16px;text-align:center}
+.deed .bal{font-size:40px;font-weight:900;line-height:1.2}
+.deed .bal small{font-size:16px;color:#666;font-weight:600}
+.deed .last small{color:#777}
+.deed .last{font-size:13.5px;color:#555;border-top:1px dashed #bbb;margin-top:10px;padding-top:8px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.act{min-height:92px;border-radius:16px;border:0;color:#fff;font-size:18px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.act span{font-size:28px}
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:40px;padding:4px 12px;font-weight:700;font-size:14px;border:1px solid rgba(255,255,255,.3);white-space:nowrap}
+.sw8{width:54px;height:38px;border-radius:8px;display:grid;place-items:center;font-size:22px;border:1px solid rgba(255,255,255,.25);flex:none}
+.hs{display:flex;gap:8px;overflow-x:auto;padding:4px 0;scrollbar-width:none}
+.hs::-webkit-scrollbar{display:none}
+.qc{flex:none;border:1px solid var(--line);background:var(--raised);border-radius:40px;padding:8px 14px;font-size:15px}
+.pct{flex:1;border:1.5px solid var(--line);background:var(--raised);border-radius:14px;padding:8px 4px;text-align:center}
+.pct b{display:block;font-size:19px}.pct small{color:var(--muted);font-size:12px}
+.pct.on{border-width:2.5px}
+/* keypad */
+.amount{text-align:center;padding:10px 0}
+.amount .v{font-size:48px;font-weight:900;line-height:1.2;word-break:break-all}
+.keys{direction:ltr;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.key{min-height:58px;border-radius:14px;border:0;background:var(--raised);font-size:26px;font-weight:600}
+.key:active{background:var(--raised2)}
+/* overlays */
+.scrim{position:fixed;inset:0;background:rgba(5,10,20,.66);z-index:50;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+.scrim.center{align-items:center;padding:16px}
+@keyframes fade{from{opacity:0}}
+.sheet{background:var(--raised);width:100%;max-width:560px;max-height:85dvh;overflow:auto;border-radius:22px 22px 0 0;
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.dlg{background:var(--raised);width:100%;max-width:420px;max-height:88dvh;overflow:auto;border-radius:22px;padding:20px}
+.dlg h3,.sheet h3{margin:0 0 12px;font-size:20px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}.kv .k{color:var(--muted)}
+.big-ok{font-size:64px;text-align:center;line-height:1}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:80;
+  background:#000d;color:#fff;padding:12px 18px;border-radius:14px;max-width:92vw;text-align:center;font-size:15px;animation:fade .2s}
+.empty{text-align:center;color:var(--muted);padding:40px 16px;line-height:2}
+.plus{color:var(--green)}.minus{color:var(--red)}
+.dots{display:flex;flex-wrap:wrap;gap:10px}
+.dot{width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.3);display:grid;place-items:center}
+.dot.on{outline:3px solid var(--gold);outline-offset:2px}
+.designs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.dz{border:1.5px solid var(--line);background:var(--raised);border-radius:12px;padding:6px 2px;text-align:center;font-size:12px}
+.dz b{display:block;font-size:26px;font-weight:400;line-height:1.3}
+.dz.on{border-color:var(--gold);background:var(--raised2)}
+.note{background:var(--raised);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--muted);line-height:1.9}
+.warn{border-right:4px solid var(--orange)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="ov"></div>
+<script>
+(() => {
+'use strict';
+const VERSION = '1.0.0';
+const KEY = 'mnp-web-v1';
+const MSG_INSUF = 'موجودی کافی نیست.';
+
+// ───────── ابزار ─────────
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => (n < 0 ? '-' : '') + Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const latin = s => String(s ?? '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+const parseAmt = s => { const d = latin(s).replace(/[^0-9]/g, ''); return d ? parseInt(d, 10) : 0; };
+const two = n => String(n).padStart(2, '0');
+const hms = d => `${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`;
+let fDate, fShort;
+try {
+  fDate = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', {day: 'numeric', month: 'long', year: 'numeric'});
+  fShort = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', {year: 'numeric', month: '2-digit', day: '2-digit'});
+} catch (e) { fDate = fShort = new Intl.DateTimeFormat('fa-IR'); }
+const jLong = d => fDate.format(d);
+const stamp = t => `<bdi class="num">${esc(fShort.format(new Date(t)))} - ${hms(new Date(t))}</bdi>`;
+const dur = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 3600)}:${two(Math.floor(s / 60) % 60)}:${two(s % 60)}`; };
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const hasWebNfc = 'NDEFReader' in window;
+
+// ───────── داده‌ها (فقط روی همین گوشی) ─────────
+let S;
+const blank = () => ({v: 1, seq: 1, cards: [], games: [], pending: null, draft: null,
+  app: {sound: true, awake: true, phone: '', currency: 'تومان', allowNegative: false, confirm: true, base: ''}});
+function load() {
+  try { const r = localStorage.getItem(KEY); S = r ? JSON.parse(r) : blank(); } catch (e) { S = blank(); }
+  const b = blank(); S.app = Object.assign(b.app, S.app || {});
+  S.cards ||= []; S.games ||= []; S.seq ||= 1;
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) { toast('ذخیره روی این گوشی ممکن نشد. از تنظیمات پشتیبان بگیرید.'); }
+}
+const nid = () => S.seq++;
+class MoneyError extends Error {}
+/** همه تغییرات مالی: یا کامل، یا هیچ. */
+function atomic(fn) {
+  const snap = JSON.stringify(S);
+  try { const r = fn(); save(); return r; }
+  catch (e) { S = JSON.parse(snap); throw e; }
+}
+
+const game = () => S.games.find(g => g.status === 'active') || null;
+const P = (g, id) => g.players.find(p => p.id === id);
+const cur = () => (game()?.settings.currency) || S.app.currency;
+const money = (n, signed) => `<bdi class="num">${signed && n > 0 ? '+' : ''}${fmt(n)}</bdi> <small class="muted">${esc(cur())}</small>`;
+const norm = c => String(c || '').trim().toLowerCase();
+const cardByCode = code => S.cards.find(c => norm(c.code) === norm(code)) || null;
+const cardByUid = uid => uid ? S.cards.find(c => c.uid && c.uid === uid) || null : null;
+const playerByCard = (g, code) => g ? g.players.find(p => p.card && norm(p.card) === norm(code)) || null : null;
+
+// ───────── ظاهر کارت ─────────
+const COLORS = [['مشکی','1E1E22'],['سفید','F2F2F2'],['قرمز','D7263D'],['آبی','2F6FE0'],['سبز','1E9E5A'],['زرد','F5C518'],
+  ['نارنجی','F08A24'],['بنفش','7B4FD6'],['صورتی','E85D9E'],['فیروزه‌ای','14B8B0'],['قهوه‌ای','8B5A3C'],['طلایی','E9B949'],['نقره‌ای','A8B0BD']];
+const DESIGNS = [['hammer','چکش','🔨'],['skate','اسکیت کفشی','🛼'],['f1','فرمول ۱','🏎️'],['pickup','وانت','🛻'],['dog','سگ','🐕'],
+  ['plane','هواپیما','✈️'],['phone','موبایل','📱'],['skateboard','اسکیت‌برد','🛹'],['hat','کلاه','🎩'],['boot','چکمه','👢'],['cat','گربه','🐈'],
+  ['ship','کشتی','🚢'],['car','ماشین','🚗'],['train','قطار','🚂'],['rocket','موشک','🚀'],['duck','اردک','🦆'],['dino','دایناسور','🦖'],
+  ['penguin','پنگوئن','🐧'],['house','خانه','🏠'],['star','ستاره','⭐'],['heart','قلب','❤️'],['diamond','الماس','💎'],['crown','تاج','👑'],
+  ['flower','گل','🌸'],['ball','توپ','⚽'],['game','دسته بازی','🎮'],['music','موسیقی','🎵']];
+const emoji = d => (DESIGNS.find(x => x[0] === d) || [])[2] || '💳';
+const hexOf = c => c && c.color ? '#' + c.color.slice(-6) : '#3A4666';
+function lum(hex) { const n = parseInt(hex.slice(1), 16); const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }; return .2126 * f(n >> 16) + .7152 * f(n >> 8 & 255) + .0722 * f(n & 255); }
+const fgOf = hex => lum(hex) > .5 ? '#1C1C1C' : '#fff';
+const swatch = c => `<span class="sw8" style="background:${hexOf(c)}">${emoji(c?.design)}</span>`;
+const chip = c => c ? `<span class="chip" style="background:${hexOf(c)};color:${fgOf(hexOf(c))}">${emoji(c.design)} ${esc(c.name)}</span>` : '';
+
+// ───────── فرمت کارت: base#mnp=1~کد~نام~رنگ~طرح~تلفن (همان فرمت اپ اندروید) ─────────
+function payload(c) {
+  const f = v => encodeURIComponent(String(v ?? '').replace(/~/g, '-'));
+  return ['1', f(c.code), f(c.name), c.color ? f('ff' + c.color.slice(-6).toLowerCase()) : '', f(c.design || ''), f(dialable(c.phone) || '')].join('~');
+}
+function parsePayload(s) {
+  const f = String(s).split(/[~|]/).map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });
+  if (f[0] !== '1' || !f[1] || !f[2]) return null;
+  return {code: f[1], name: f[2], color: f[3] ? f[3].slice(-6).toUpperCase() : '', design: f[4] || '', phone: f[5] || ''};
+}
+function parseCardUrl(u) { const i = String(u).indexOf('#mnp='); return i < 0 ? null : parsePayload(String(u).slice(i + 5)); }
+function baseUrl() { return (S.app.base || '').trim(); }
+function cardLink(c) { const b = baseUrl(); return b ? b.replace(/#.*$/, '') + '#mnp=' + payload(c) : ''; }
+function dialable(p) { const x = latin(p).replace(/[\s\-()]/g, ''); return /^\+?\d{7,15}$/.test(x) ? x : ''; }
+
+// ───────── صدا و بیدار ماندن صفحه ─────────
+let actx;
+function unlockAudio() { try { actx ||= new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {} }
+function chime() {
+  if (navigator.vibrate) navigator.vibrate(40);
+  if (!S.app.sound || !actx) return;
+  const now = actx.currentTime;
+  [[1318.51, 0, .5], [1975.53, .085, .45]].forEach(([f, t, a]) => {
+    const o = actx.createOscillator(), o2 = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = f; o2.frequency.value = f * 2; o.type = o2.type = 'sine';
+    const g2 = actx.createGain(); g2.gain.value = .18; o2.connect(g2).connect(g);
+    o.connect(g).connect(actx.destination);
+    g.gain.setValueAtTime(0, now + t); g.gain.linearRampToValueAtTime(a * .6, now + t + .005);
+    g.gain.exponentialRampToValueAtTime(.0001, now + t + .7);
+    o.start(now + t); o2.start(now + t); o.stop(now + t + .75); o2.stop(now + t + .75);
+  });
+}
+function errBuzz() { if (navigator.vibrate) navigator.vibrate([60, 60, 60]); }
+let wake = null;
+async function keepAwake() {
+  try {
+    if (S.app.awake && game() && document.visibilityState === 'visible' && 'wakeLock' in navigator) {
+      if (!wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+    } else if (wake) { await wake.release(); wake = null; }
+  } catch (e) {}
+}
+
+// ───────── عملیات مالی ─────────
+const LABEL = {initial: 'موجودی اولیه', deposit: 'افزایش موجودی', withdraw: 'کاهش موجودی', transfer: 'انتقال', reversal: 'برگشت تراکنش'};
+const KIND = {withdraw_all: 'کاهش همگانی', transfer_all: 'انتقال همگانی', reversal: 'برگشت عملیات همگانی'};
+const txLabel = t => KIND[t.kind] || LABEL[t.type];
+function move(g, o) {
+  if (!Number.isInteger(o.amount) || o.amount <= 0) throw new MoneyError('مبلغ نامعتبر است.');
+  const s = o.from != null ? P(g, o.from) : null, r = o.to != null ? P(g, o.to) : null;
+  if (s && !g.settings.allowNegative && s.balance < o.amount) throw new MoneyError(MSG_INSUF);
+  const t = {id: nid(), t: o.at || Date.now(), type: o.type, from: o.from ?? null, to: o.to ?? null, amount: o.amount,
+    batch: o.batch || null, kind: o.kind || null, rev: o.rev || null};
+  if (s) { t.sb = s.balance; s.balance -= o.amount; t.sa = s.balance; }
+  if (r) { t.rb = r.balance; r.balance += o.amount; t.ra = r.balance; }
+  g.txs.push(t); return t;
+}
+const needGame = () => { const g = game(); if (!g) throw new MoneyError('بازی فعالی وجود ندارد.'); return g; };
+const opDeposit = (pid, a) => atomic(() => move(needGame(), {type: 'deposit', to: pid, amount: a}));
+const opWithdraw = (pid, a) => atomic(() => move(needGame(), {type: 'withdraw', from: pid, amount: a}));
+const opTransfer = (f, to, a) => atomic(() => { if (f === to) throw new MoneyError('پرداخت‌کننده و دریافت‌کننده یکی هستند.'); return move(needGame(), {type: 'transfer', from: f, to, amount: a}); });
+const opWithdrawAll = a => atomic(() => {
+  const g = needGame();
+  if (!g.settings.allowNegative) { const s = g.players.filter(p => p.balance < a).map(p => p.name); if (s.length) throw new MoneyError('موجودی این بازیکنان کافی نیست: ' + s.join('، ')); }
+  const batch = uuid(), at = Date.now();
+  return g.players.map(p => move(g, {type: 'withdraw', from: p.id, amount: a, batch, kind: 'withdraw_all', at}));
+});
+const opTransferAll = (from, a) => atomic(() => {
+  const g = needGame(); const others = g.players.filter(p => p.id !== from);
+  if (!others.length) throw new MoneyError('بازیکن دیگری وجود ندارد.');
+  if (!g.settings.allowNegative && P(g, from).balance < a * others.length) throw new MoneyError(MSG_INSUF);
+  const batch = uuid(), at = Date.now();
+  return others.map(p => move(g, {type: 'transfer', from, to: p.id, amount: a, batch, kind: 'transfer_all', at}));
+});
+const isReversed = (g, t) => g.txs.some(x => x.rev === t.id);
+function lastReversible(g, pid) {
+  for (let i = g.txs.length - 1; i >= 0; i--) {
+    const t = g.txs[i];
+    if (!['deposit', 'withdraw', 'transfer'].includes(t.type) || isReversed(g, t)) continue;
+    if (pid != null && t.from !== pid && t.to !== pid) continue;
+    return t;
+  }
+  return null;
+}
+const opReverse = tx => atomic(() => {
+  const g = needGame();
+  const all = tx.batch ? g.txs.filter(x => x.batch === tx.batch) : [tx];
+  const nb = tx.batch ? uuid() : null;
+  let first = null;
+  for (const o of all) {
+    if (isReversed(g, o)) throw new MoneyError('این تراکنش قبلاً برگشت خورده است.');
+    try { const r = move(g, {type: 'reversal', from: o.to, to: o.from, amount: o.amount, rev: o.id, batch: nb, kind: nb ? 'reversal' : null}); first ||= r; }
+    catch (e) { if (e.message === MSG_INSUF && o.to != null) throw new MoneyError(`موجودی «${P(g, o.to).name}» برای برگشت کافی نیست.`); throw e; }
+  }
+  return first;
+});
+const party = (g, id) => id == null ? 'بانک' : (P(g, id)?.name || '؟');
+
+// ───────── نمایش ─────────
+let ui = {s: 'home'};
+const app = document.getElementById('app'), ov = document.getElementById('ov');
+function go(s, extra = {}) { ui = Object.assign({s}, extra); render(); window.scrollTo(0, 0); }
+function bar(title, back = 'home', extra = '') {
+  return `<div class="bar">${back ? `<button class="icon" data-a="go" data-to="${back}" aria-label="بازگشت">→</button>` : ''}<h1>${title}</h1>${extra}</div>`;
+}
+function toast(msg, ms = 2600) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), ms); }
+
+// دیالوگ‌ها
+let resolver = null;
+function overlay(html, center = true) {
+  return new Promise(res => { resolver = res; ov.innerHTML = `<div class="scrim ${center ? 'center' : ''}" data-a="scrim"><div class="${center ? 'dlg' : 'sheet'}" role="dialog" aria-modal="true">${html}</div></div>`;
+    const f = ov.querySelector('[autofocus]'); if (f) setTimeout(() => f.focus(), 50); });
+}
+function close(v) { ov.innerHTML = ''; const r = resolver; resolver = null; if (r) r(v); }
+const kv = rows => rows.map(([k, v]) => `<div class="kv"><span class="k">${k}</span><span>${v}</span></div>`).join('');
+function confirmBox(title, rows, {msg = '', ok = 'تأیید', cls = 'green'} = {}) {
+  return overlay(`<h3>${title}</h3>${kv(rows)}${msg ? `<p class="muted" style="font-size:14px">${msg}</p>` : ''}
+    <div class="row" style="margin-top:14px"><button class="btn ghost" data-a="close">لغو</button><button class="btn ${cls}" data-a="close" data-v="1">${ok}</button></div>`);
+}
+async function errorBox(msg) { errBuzz(); await overlay(`<div class="big-ok">⚠️</div><h3 style="text-align:center;margin-top:10px">${esc(msg)}</h3><button class="btn" data-a="close">باشه</button>`); }
+let receiptTimer;
+function receipt(title, rows) {
+  chime();
+  overlay(`<div class="big-ok" style="color:var(--green)">✔</div><h3 style="text-align:center;margin-top:8px">${title}</h3>${kv(rows)}<button class="btn primary" style="margin-top:14px" data-a="close">بستن</button>`)
+    .then(() => { clearTimeout(receiptTimer); go('home'); });
+  clearTimeout(receiptTimer); receiptTimer = setTimeout(() => close(), 4000);
+}
+function pickPlayer(title, players, {sub = '', extra = ''} = {}) {
+  return overlay(`<h3>${title}</h3>${sub ? `<p class="muted" style="margin-top:-6px">${sub}</p>` : ''}<div class="list">${players.map(p =>
+    `<button class="item" data-a="close" data-v="${p.id}">${swatch(cardByCode(p.card))}<div class="grow"><div class="t">${esc(p.name)}</div><div class="s">${money(p.balance)}</div></div></button>`).join('') || '<div class="empty">بازیکنی نیست.</div>'}</div>
+    ${extra}<button class="btn ghost" style="margin-top:12px" data-a="close">لغو</button>`, false).then(v => v == null ? null : (v === 'new' ? 'new' : Number(v)));
+}
+function nameBox(title, {name = '', balance = null} = {}) {
+  return overlay(`<h3>${title}</h3><label class="f">نام بازیکن</label><input class="inp" id="nb-n" value="${esc(name)}" autofocus>
+    ${balance != null ? `<label class="f">موجودی اولیه</label><input class="inp num" id="nb-b" inputmode="numeric" data-money value="${fmt(balance)}">` : ''}
+    <div class="row" style="margin-top:16px"><button class="btn ghost" data-a="close">لغو</button><button class="btn green" data-a="nameok">تأیید</button></div>`);
+}
+
+// ───────── صفحه‌ها ─────────
+const R = {};
+function render() {
+  if (ui.s === 'wait' && !S.pending) ui = {s: 'home'};
+  (R[ui.s] || R.home)();
+  keepAwake();
+}
+
+R.home = () => {
+  const g = game();
+  const ver = `<button class="ver" data-a="go" data-to="about">نسخه وب <bdi class="num">${VERSION}</bdi></button>`;
+  if (!g) {
+    app.innerHTML = `<div class="wrap" style="text-align:center;padding-top:40px">
+      <div class="wordmark">MONOPOLY</div>
+      <div class="clock num" id="clk" style="margin-top:28px;font-size:44px">${hms(new Date())}</div>
+      <div class="muted" id="dte">${jLong(new Date())}</div>
+      <p style="margin-top:36px;font-size:18px">هیچ بازی فعالی وجود ندارد.</p>
+      <div class="stack" style="margin-top:20px">
+        <button class="btn primary" data-a="go" data-to="newgame">▶ بازی جدید</button>
+        <button class="btn ghost" data-a="go" data-to="cards">بانک کارت‌ها</button>
+        <button class="btn ghost" data-a="go" data-to="past">بازی‌های قبلی</button>
+        <button class="btn ghost" data-a="go" data-to="settings">تنظیمات و پشتیبان</button>
+        <button class="btn ghost" data-a="go" data-to="about">درباره برنامه</button>
+      </div>${nfcHint()}<div style="margin-top:24px">${ver}</div></div>`;
+    return;
+  }
+  app.innerHTML = `${bar(`<span class="muted" style="font-size:16px">${esc(g.name)}</span>`, '', `<button class="icon" data-a="menu" aria-label="منو">☰</button>`)}
+  <div class="wrap"><div class="ready">
+    <div class="wordmark">MONOPOLY</div>
+    <div class="clock num" id="clk" style="margin-top:18px">${hms(new Date())}</div>
+    <div class="muted" id="dte" style="font-size:18px">${jLong(new Date())}</div>
+    <div class="pill" style="margin-top:12px">⏱ زمان بازی: <b class="num" id="gtm">${dur(Date.now() - g.start)}</b></div>
+    <div class="nfc">💳</div>
+    <div class="tapme">کارت را نزدیک کنید</div>
+    <div class="muted" style="font-size:15px;max-width:320px">${readyHint()}</div>
+    ${hasWebNfc && !nfcOn ? `<button class="btn primary" style="max-width:260px;margin-top:10px" data-a="nfc">روشن کردن NFC</button>` : ''}
+    <button class="btn ghost" style="max-width:260px;margin-top:10px" data-a="manual">انتخاب بازیکن از فهرست</button>
+  </div></div>
+  <div class="foot"><div class="row">
+    <button class="btn ghost red" data-a="wall">کاهش همگانی</button>
+    <button class="btn ghost blue" data-a="tall">انتقال همگانی</button></div>${ver}</div>`;
+};
+function readyHint() {
+  if (hasWebNfc) return nfcOn ? 'منتظر کارت بازیکن…' : 'برای خواندن کارت، یک بار «روشن کردن NFC» را بزنید.';
+  if (isIOS) return 'کارت را بالای پشت iPhone نگه دارید و روی اعلانی که ظاهر می‌شود بزنید.';
+  return 'این مرورگر NFC را پشتیبانی نمی‌کند؛ بازیکن را از فهرست انتخاب کنید.';
+}
+function nfcHint() {
+  if (baseUrl() || !isIOS) return '';
+  return `<div class="note warn" style="margin-top:22px;text-align:right">برای شناختن کارت‌ها روی iPhone، آدرس همین صفحه را در تنظیمات ← «آدرس صفحه برای کارت‌ها» وارد کنید و کارت‌ها را با آن بنویسید.</div>`;
+}
+
+R.player = () => {
+  const g = game(); const p = g && P(g, ui.pid); if (!p) return go('home');
+  const c = cardByCode(p.card);
+  const last = [...g.txs].reverse().find(t => t.from === p.id || t.to === p.id);
+  app.innerHTML = `${bar('کارت بازیکن')}<div class="wrap">
+    <div class="deed"><div class="head"><div class="n">${esc(p.name)}</div>${chip(c)}</div>
+      <div class="body"><div style="color:#666;font-size:14px">موجودی</div><div class="bal">${money(p.balance)}</div>
+      <div class="last">${last ? `آخرین تراکنش: ${txLabel(last)} ${money(last.to === p.id ? last.amount : -last.amount, true)}<br>${stamp(last.t)}` : 'هنوز تراکنشی ثبت نشده'}</div></div></div>
+    <div class="acts">
+      <button class="act" style="background:var(--green)" data-a="dep"><span>＋</span>افزایش موجودی</button>
+      <button class="act" style="background:var(--red)" data-a="wd"><span>－</span>کاهش موجودی</button>
+      <button class="act" style="background:var(--blue)" data-a="tr"><span>⇄</span>انتقال</button>
+      <button class="act" style="background:var(--orange);color:#1a1a1a" data-a="go" data-to="history" data-pid="${p.id}"><span>☰</span>تاریخچه</button>
+    </div></div>`;
+};
+
+// صفحه‌کلید مبلغ
+let amt = null; // {title,color,pid,sub,percents,done(fn)}
+R.amount = () => {
+  const a = amt, g = game(), p = a.pid != null && g ? P(g, a.pid) : null;
+  const v = parseInt(a.digits || '0', 10);
+  const pcts = a.percents && p && p.balance > 0 ? `<div class="row" style="gap:8px;margin-bottom:8px">${[10, 20, 30].map(x =>
+    `<button class="pct ${a.pct === x ? 'on' : ''}" style="${a.pct === x ? `border-color:${a.color}` : ''}" data-a="pct" data-v="${x}"><b class="num">${x}%</b><small class="num">${fmt(Math.floor(p.balance * x / 100))}</small></button>`).join('')}</div>` : '';
+  app.innerHTML = `${bar(esc(a.title), '', `<button class="icon" data-a="amtcancel" aria-label="لغو">✕</button>`)}<div class="wrap">
+    ${p ? `<div style="display:flex;justify-content:space-between"><b>${esc(p.name)}</b><span class="muted">موجودی: ${money(p.balance)}</span></div>` : ''}
+    <div class="amount"><div class="muted">${esc(a.sub || 'مبلغ')}</div><div class="v num" style="color:${a.color}">${fmt(v)}</div>
+      ${a.pct ? `<div style="color:${a.color}"><bdi class="num">${a.pct}%</bdi> موجودی فعلی</div>` : ''}</div>
+    ${pcts}
+    <div class="hs">${[100000, 500000, 1000000, 2000000, 5000000].map(q => `<button class="qc num" data-a="qadd" data-v="${q}">+${fmt(q)}</button>`).join('')}</div>
+    <div class="keys">${['1','2','3','4','5','6','7','8','9','000','0','del'].map(k => `<button class="key" data-a="key" data-v="${k}">${k === 'del' ? '⌫' : k}</button>`).join('')}</div>
+    <button class="btn" style="margin-top:12px;min-height:62px;background:${a.color};color:#fff" data-a="amtok" ${v > 0 ? '' : 'disabled'}>ادامه</button>
+  </div>`;
+};
+function askAmount(o) { return new Promise(res => { amt = Object.assign({digits: '', pct: null}, o, {done: res}); go('amount'); }); }
+
+// انتظار برای کارت (انتقال، انتقال همگانی، افزودن بازیکن)
+R.wait = () => {
+  const pd = S.pending, g = game();
+  const list = (pd.kind === 'transfer' ? g.players.filter(p => p.id !== pd.from) : pd.kind === 'payerAll' ? g.players : []);
+  app.innerHTML = `${bar(esc(pd.title), '', `<button class="icon" data-a="unpend" aria-label="لغو">✕</button>`)}<div class="wrap" style="text-align:center">
+    <div class="nfc">💳</div><div class="tapme" style="font-size:22px">${esc(pd.prompt)}</div>
+    <p class="muted">${esc(pd.sub || '')}</p><p class="muted" style="font-size:14px">${readyHint()}</p>
+    ${hasWebNfc && !nfcOn ? `<button class="btn primary" data-a="nfc">روشن کردن NFC</button>` : ''}
+    ${pd.kind === 'draftCard' ? `<button class="btn ghost" style="margin-top:12px" data-a="draftpick">انتخاب از فهرست کارت‌ها</button>` :
+      `<h2 class="sec" style="text-align:right">یا از فهرست انتخاب کنید</h2><div class="list" style="text-align:right">${list.map(p =>
+        `<button class="item" data-a="waitpick" data-v="${p.id}">${swatch(cardByCode(p.card))}<div class="grow"><div class="t">${esc(p.name)}</div><div class="s">${money(p.balance)}</div></div></button>`).join('')}</div>`}
+    <button class="btn ghost" style="margin-top:14px" data-a="unpend">لغو</button></div>`;
+};
+function setPending(p) { S.pending = Object.assign({at: Date.now()}, p); save(); go('wait'); }
+function clearPending() { S.pending = null; save(); }
+const pendingFresh = () => S.pending && Date.now() - S.pending.at < 5 * 60 * 1000;
+
+// ───────── جریان‌های مالی ─────────
+const hasFunds = (p, a) => game().settings.allowNegative || p.balance >= a;
+async function flowDeposit(pid) {
+  const a = await askAmount({title: 'افزایش موجودی', color: 'var(--green)', pid}); if (!a) return;
+  const g = game(), p = P(g, pid);
+  if (g.settings.confirm && !await confirmBox('تأیید افزایش موجودی', [['بازیکن', esc(p.name)], ['مبلغ', money(a, true)], ['موجودی جدید', money(p.balance + a)]])) return go('player', {pid});
+  run(() => opDeposit(pid, a), t => ['موجودی افزایش یافت', [['بازیکن', esc(p.name)], ['مبلغ', money(a, true)], ['موجودی جدید', money(t.ra)], ['زمان', stamp(t.t)]]]);
+}
+async function flowWithdraw(pid) {
+  const a = await askAmount({title: 'کاهش موجودی', color: 'var(--red)', pid, percents: true}); if (!a) return;
+  const g = game(), p = P(g, pid);
+  if (!hasFunds(p, a)) { await errorBox(MSG_INSUF); return go('player', {pid}); }
+  if (g.settings.confirm && !await confirmBox('تأیید کاهش موجودی', [['بازیکن', esc(p.name)], ['مبلغ', money(-a, true)], ['موجودی جدید', money(p.balance - a)]], {cls: 'red'})) return go('player', {pid});
+  run(() => opWithdraw(pid, a), t => ['موجودی کاهش یافت', [['بازیکن', esc(p.name)], ['مبلغ', money(-a, true)], ['موجودی جدید', money(t.sa)], ['زمان', stamp(t.t)]]]);
+}
+async function flowTransfer(pid) {
+  const p = P(game(), pid);
+  const a = await askAmount({title: `انتقال از ${p.name}`, color: 'var(--blue)', pid, percents: true}); if (!a) return;
+  if (!hasFunds(P(game(), pid), a)) { await errorBox(MSG_INSUF); return go('player', {pid}); }
+  setPending({kind: 'transfer', from: pid, amount: a, title: 'انتقال', prompt: 'کارت دریافت‌کننده را نزدیک کنید', sub: `انتقال ${fmt(a)} ${cur()} از ${p.name}`});
+}
+async function finishTransfer(from, to, a) {
+  clearPending();
+  const g = game(), f = P(g, from), t = P(g, to);
+  if (from === to) { await errorBox('کارت دریافت‌کننده نمی‌تواند همان کارت پرداخت‌کننده باشد.'); return go('home'); }
+  if (g.settings.confirm && !await confirmBox('تأیید انتقال', [['از', esc(f.name)], ['به', esc(t.name)], ['مبلغ', money(a)], [`موجودی ${esc(f.name)}`, money(f.balance - a)], [`موجودی ${esc(t.name)}`, money(t.balance + a)]], {cls: 'blue'})) return go('home');
+  run(() => opTransfer(from, to, a), x => ['انتقال انجام شد', [['از', esc(f.name)], ['به', esc(t.name)], ['مبلغ', money(a)], [`موجودی ${esc(f.name)}`, money(x.sa)], [`موجودی ${esc(t.name)}`, money(x.ra)], ['زمان', stamp(x.t)]]]);
+}
+async function flowWithdrawAll() {
+  const g = game(); if (!g || !g.players.length) return errorBox('بازیکنی در بازی وجود ندارد.');
+  const a = await askAmount({title: 'کاهش همگانی', color: 'var(--red)', sub: 'مبلغ کسر از هر بازیکن'}); if (!a) return;
+  if (!g.settings.allowNegative) { const s = g.players.filter(p => p.balance < a).map(p => p.name); if (s.length) { await errorBox('موجودی این بازیکنان کافی نیست: ' + s.join('، ')); return go('home'); } }
+  const total = a * g.players.length;
+  if (!await confirmBox('تأیید کاهش همگانی', [['بازیکنان', `<bdi class="num">${g.players.length}</bdi> نفر`], ['از هر نفر', money(-a, true)], ['مجموع', money(total)]], {msg: esc(g.players.map(p => p.name).join('، ')), ok: 'کسر از همه', cls: 'red'})) return go('home');
+  run(() => opWithdrawAll(a), txs => ['کاهش همگانی انجام شد', [['بازیکنان', `<bdi class="num">${txs.length}</bdi> نفر`], ['از هر نفر', money(-a, true)], ['مجموع', money(total)], ['زمان', stamp(txs[0].t)]]]);
+}
+function flowTransferAll() {
+  const g = game(); if (!g || g.players.length < 2) return errorBox('برای انتقال همگانی حداقل دو بازیکن لازم است.');
+  setPending({kind: 'payerAll', title: 'انتقال همگانی', prompt: 'کارت پرداخت‌کننده را نزدیک کنید', sub: 'پرداخت‌کننده به هر یک از بازیکنان دیگر پرداخت می‌کند.'});
+}
+async function finishTransferAll(from) {
+  clearPending();
+  const g = game(), f = P(g, from);
+  const a = await askAmount({title: `انتقال همگانی از ${f.name}`, color: 'var(--blue)', pid: from, sub: 'مبلغ برای هر بازیکن'}); if (!a) return;
+  const others = g.players.filter(p => p.id !== from), total = a * others.length;
+  if (!g.settings.allowNegative && f.balance < total) { await errorBox(`${MSG_INSUF} مجموع لازم: ${fmt(total)}`); return go('home'); }
+  if (!await confirmBox('تأیید انتقال همگانی', [['از', esc(f.name)], ['به', `<bdi class="num">${others.length}</bdi> بازیکن`], ['به هر نفر', money(a)], ['مجموع کسر', money(-total, true)], [`موجودی ${esc(f.name)}`, money(f.balance - total)]], {msg: esc(others.map(p => p.name).join('، ')), ok: 'انتقال به همه', cls: 'blue'})) return go('home');
+  run(() => opTransferAll(from, a), txs => ['انتقال همگانی انجام شد', [['از', esc(f.name)], ['به', `<bdi class="num">${txs.length}</bdi> بازیکن`], ['به هر نفر', money(a)], ['مجموع', money(total)], [`موجودی ${esc(f.name)}`, money(txs[txs.length - 1].sa)], ['زمان', stamp(txs[0].t)]]]);
+}
+async function run(op, rc) {
+  try { const r = op(); const [title, rows] = rc(r); receipt(title, rows); }
+  catch (e) { if (e instanceof MoneyError) { await errorBox(e.message); go('home'); } else throw e; }
+}
+async function flowUndo(pid) {
+  const g = game(); const t = g && lastReversible(g, pid);
+  if (!t) return errorBox('تراکنشی برای برگشت وجود ندارد.');
+  let ok;
+  if (t.batch) {
+    const all = g.txs.filter(x => x.batch === t.batch);
+    ok = await confirmBox('برگشت آخرین تراکنش', [['نوع', txLabel(t)], ['تعداد', `<bdi class="num">${all.length}</bdi> تراکنش`], ['هر تراکنش', money(t.amount)], ['زمان', stamp(t.t)]], {msg: 'کل این عملیات همگانی با هم برگشت می‌خورد.', ok: 'برگشت بزن', cls: 'orange'});
+  } else {
+    ok = await confirmBox('برگشت آخرین تراکنش', [['تراکنش', `${esc(party(g, t.from))} ← ${esc(party(g, t.to))}`], ['نوع', txLabel(t)], ['مبلغ', money(t.amount)], ['زمان', stamp(t.t)]], {msg: 'تراکنش اصلی در تاریخچه می‌ماند و یک تراکنش معکوس ثبت می‌شود.', ok: 'برگشت بزن', cls: 'orange'});
+  }
+  if (!ok) return;
+  try { opReverse(t); toast('تراکنش برگشت خورد.'); render(); } catch (e) { if (e instanceof MoneyError) errorBox(e.message); else throw e; }
+}
+
+// ───────── کارت‌ها: ورود از NFC یا لینک ─────────
+/** ورودی: {uid?, data?} ← کارت در بانک کارت‌ها (در صورت نیاز خودکار ثبت می‌شود) */
+function resolveCard({uid, data}) {
+  let c = (data && cardByCode(data.code)) || cardByUid(uid);
+  if (c) { if (uid && !c.uid && !cardByUid(uid)) { c.uid = uid; save(); } return c; }
+  if (!data) return null;
+  let code = data.code;
+  for (let i = 2; cardByCode(code); i++) code = `${data.code}-${i}`;
+  c = {code, name: data.name, color: data.color || '', design: data.design || '', phone: data.phone || '', uid: uid || ''};
+  S.cards.push(c); save();
+  toast(`«${c.name}» از روی کارت شناسایی و به بانک کارت‌ها اضافه شد.`);
+  return c;
+}
+async function handleCard(input) {
+  unlockAudio();
+  if (resolver) close();
+  let c = resolveCard(input);
+  if (!c) {
+    if (!input.uid) return;
+    if (!await confirmBox('این کارت ثبت نشده است.', [['شناسه کارت', `<bdi class="num">${esc(input.uid)}</bdi>`]], {ok: 'ثبت کارت'})) return;
+    return go('cardEdit', {uid: input.uid, fresh: true});
+  }
+  const g = game(), pd = pendingFresh() ? S.pending : null;
+  if (pd && pd.kind === 'draftCard') { clearPending(); return draftAddWithCard(c); }
+  if (pd && g) {
+    const p = playerByCard(g, c.code);
+    if (!p) { await errorBox(`«${c.name}» در این بازی به بازیکنی وصل نیست.`); return go('wait'); }
+    if (pd.kind === 'transfer') return finishTransfer(pd.from, p.id, pd.amount);
+    if (pd.kind === 'payerAll') return finishTransferAll(p.id);
+  }
+  if (ui.s === 'cards' || ui.s === 'cardEdit') return go('cardEdit', {code: c.code});
+  if (!g) { toast(`«${c.name}» شناسایی شد. برای استفاده، بازی جدید بسازید.`); return go(ui.s === 'newgame' ? 'newgame' : 'home'); }
+  const p = playerByCard(g, c.code);
+  if (p) return go('player', {pid: p.id});
+  if (!await confirmBox(`«${esc(c.name)}» در این بازی به بازیکنی وصل نیست.`, [['کارت', chip(c)]], {ok: 'وصل به بازیکن'})) return;
+  linkCardFlow(c);
+}
+async function linkCardFlow(c) {
+  const g = game();
+  const v = await pickPlayer(`«${esc(c.name)}» برای کدام بازیکن است؟`, g.players, {extra: `<button class="btn green" style="margin-top:12px" data-a="close" data-v="new">＋ بازیکن جدید</button>`});
+  if (v == null) return;
+  if (v === 'new') {
+    const r = await nameBox(`بازیکن «${esc(c.name)}»`, {balance: g.players[0]?.initial ?? 15000000}); if (!r) return;
+    if (g.players.some(p => p.name === r.name)) return errorBox('نام بازیکنان نباید تکراری باشد.');
+    atomic(() => { const p = {id: nid(), name: r.name, initial: r.balance, balance: 0, card: c.code}; g.players.push(p); move(g, {type: 'initial', to: p.id, amount: r.balance || 0}); });
+    return go('player', {pid: g.players[g.players.length - 1].id});
+  }
+  const p = P(g, v);
+  if (p.card && !await confirmBox('جایگزینی کارت', [['بازیکن', esc(p.name)], ['کارت فعلی', chip(cardByCode(p.card)) || esc(p.card)], ['کارت جدید', chip(c)]])) return;
+  p.card = c.code; save(); go('player', {pid: p.id});
+}
+
+// Web NFC (Chrome اندروید)
+let nfcOn = false, reader = null, lastRead = {uid: '', at: 0}, writing = null;
+async function startNfc() {
+  unlockAudio();
+  try {
+    reader = new NDEFReader(); await reader.scan(); nfcOn = true;
+    reader.onreading = e => {
+      if (writing) return;
+      const uid = (e.serialNumber || '').toUpperCase();
+      if (uid && uid === lastRead.uid && Date.now() - lastRead.at < 1500) return;
+      lastRead = {uid, at: Date.now()};
+      let data = null; const dec = new TextDecoder();
+      for (const r of e.message.records) {
+        try {
+          if (r.recordType === 'url' || r.recordType === 'absolute-url') data ||= parseCardUrl(dec.decode(r.data));
+          else if (r.recordType === 'mnp.app:card') data ||= parsePayload(dec.decode(r.data));
+        } catch (x) {}
+      }
+      handleCard({uid, data});
+    };
+    reader.onreadingerror = () => toast('کارت خوانده نشد. دوباره نزدیک کنید.');
+    toast('NFC روشن شد. کارت را پشت گوشی بگیرید.'); render();
+  } catch (e) { errorBox('NFC روشن نشد. NFC گوشی را روشن کنید و اجازه دسترسی بدهید.'); }
+}
+async function writeCard(c) {
+  if (!hasWebNfc) return errorBox('نوشتن روی کارت در این مرورگر ممکن نیست.');
+  const link = cardLink(c);
+  const enc = new TextEncoder();
+  const records = link ? [{recordType: 'url', data: link}] : [{recordType: 'mnp.app:card', data: enc.encode(payload(c))}];
+  const ac = new AbortController(); writing = ac;
+  overlay(`<div class="nfc">💳</div><h3 style="text-align:center">کارت «${esc(c.name)}» را نزدیک کنید و نگه دارید</h3><button class="btn ghost" data-a="close">لغو</button>`).then(() => ac.abort());
+  try { await new NDEFReader().write({records}, {signal: ac.signal, overwrite: true}); close(); chime(); toast(`مشخصات روی «${c.name}» نوشته شد.`); }
+  catch (e) { if (e.name !== 'AbortError') { close(); errorBox('نوشتن انجام نشد. کارت را ثابت نگه دارید و دوباره امتحان کنید.'); } }
+  finally { writing = null; }
+}
+
+// ───────── بازی جدید ─────────
+function draft() {
+  if (!S.draft) { const d = new Date(); S.draft = {name: `بازی ${fDate.format(d)}`, start: Date.now(), balance: 15000000, players: [], currency: S.app.currency, allowNegative: S.app.allowNegative, confirm: S.app.confirm}; save(); }
+  return S.draft;
+}
+R.newgame = () => {
+  const d = draft();
+  const local = new Date(d.start - new Date(d.start).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  app.innerHTML = `${bar('بازی جدید', 'home', `<button class="icon" data-a="go" data-to="cards" aria-label="بانک کارت‌ها">🗂</button>`)}<div class="wrap">
+    <label class="f">نام بازی</label><input class="inp" id="g-name" value="${esc(d.name)}" data-draft="name">
+    <label class="f">تاریخ و ساعت شروع</label><input class="inp num" type="datetime-local" id="g-start" value="${local}" data-draft="start">
+    <div class="muted" style="font-size:14px;margin-top:4px">${jLong(new Date(d.start))} — ساعت <bdi class="num">${hms(new Date(d.start)).slice(0, 5)}</bdi></div>
+    <label class="f">موجودی اولیه پیش‌فرض</label><input class="inp num" inputmode="numeric" data-money data-draft="balance" value="${fmt(d.balance)}">
+    <h2 class="sec">بازیکنان (<bdi class="num">${d.players.length}</bdi>)</h2>
+    ${d.players.length ? `<div class="list">${d.players.map((p, i) => { const c = cardByCode(p.card); return `<div class="item">${swatch(c)}<div class="grow"><div class="t">${esc(p.name)}</div><div class="s">${c ? esc(c.name) + ' · ' : ''}${money(p.balance)}</div></div><button class="icon" data-a="drm" data-v="${i}" aria-label="حذف">✕</button></div>`; }).join('')}</div>`
+      : `<div class="note">«افزودن بازیکن» را بزنید، کارت را نزدیک کنید (یا از فهرست انتخاب کنید) و نام بازیکن را بنویسید. اتصال کارت به بازیکن فقط برای همین بازی است.</div>`}
+    <button class="btn ghost" style="margin-top:12px" data-a="dadd">＋ افزودن بازیکن</button>
+    <h2 class="sec">تنظیمات این بازی</h2><div class="list">
+      <label class="sw"><span class="grow">واحد پول</span><input class="inp" style="width:120px;min-height:40px;font-size:16px" data-draft="currency" value="${esc(d.currency)}"></label>
+      <label class="sw"><span class="grow">اجازه موجودی منفی</span><input type="checkbox" data-draft="allowNegative" ${d.allowNegative ? 'checked' : ''}></label>
+      <label class="sw"><span class="grow">تأیید قبل از هر تراکنش</span><input type="checkbox" data-draft="confirm" ${d.confirm ? 'checked' : ''}></label></div>
+    <button class="btn primary" style="margin-top:18px;min-height:62px" data-a="gstart" ${d.players.length >= 2 ? '' : 'disabled'}>شروع بازی</button>
+    ${d.players.length < 2 ? '<p class="muted" style="text-align:center;font-size:14px">حداقل دو بازیکن لازم است.</p>' : ''}
+  </div>`;
+};
+async function draftAddWithCard(c) {
+  const d = draft(); go('newgame');
+  if (d.players.some(p => norm(p.card) === norm(c.code))) return errorBox('این کارت قبلاً به یک بازیکن اختصاص داده شده است.');
+  const r = await nameBox(`بازیکن «${esc(c.name)}»`, {balance: d.balance}); if (!r) return;
+  if (d.players.some(p => p.name === r.name)) return errorBox('نام بازیکنان نباید تکراری باشد.');
+  d.players.push({name: r.name, balance: r.balance || d.balance, card: c.code}); save(); render();
+}
+async function draftPickCard() {
+  const d = draft(), used = new Set(d.players.map(p => norm(p.card)));
+  const list = S.cards.filter(c => !used.has(norm(c.code)));
+  const v = await overlay(`<h3>انتخاب کارت</h3><div class="list">${list.map(c => `<button class="item" data-a="close" data-v="${esc(c.code)}">${swatch(c)}<div class="grow"><div class="t">${esc(c.name)}</div><div class="s num">${esc(c.code)}</div></div></button>`).join('') || '<div class="empty">کارت آزادی در بانک کارت‌ها نیست. اول کارت ثبت کنید.</div>'}</div><button class="btn ghost" style="margin-top:12px" data-a="close">لغو</button>`, false);
+  if (v == null) return;
+  clearPending(); draftAddWithCard(cardByCode(v));
+}
+function startGame() {
+  const d = draft();
+  if (game()) return errorBox('یک بازی فعال وجود دارد. اول آن را تمام کنید.');
+  atomic(() => {
+    const g = {id: nid(), name: d.name.trim() || 'بازی', start: d.start, end: null, status: 'active',
+      settings: {currency: d.currency || 'تومان', allowNegative: !!d.allowNegative, confirm: !!d.confirm}, players: [], txs: []};
+    S.games.push(g);
+    for (const x of d.players) { const p = {id: nid(), name: x.name, initial: x.balance, balance: 0, card: x.card}; g.players.push(p); if (x.balance > 0) move(g, {type: 'initial', to: p.id, amount: x.balance, at: d.start}); }
+    S.draft = null;
+  });
+  toast('بازی شروع شد.'); go('home');
+}
+
+// ───────── بانک کارت‌ها ─────────
+R.cards = () => {
+  const g = game();
+  app.innerHTML = `${bar(`بانک کارت‌ها (<bdi class="num">${S.cards.length}</bdi>)`, 'home')}<div class="wrap">
+    ${S.cards.length ? `<div class="list">${S.cards.map(c => { const p = playerByCard(g, c.code); return `<button class="item" data-a="go" data-to="cardEdit" data-code="${esc(c.code)}">${swatch(c)}<div class="grow"><div class="t">${esc(c.name)}</div><div class="s"><bdi class="num">${esc(c.code)}</bdi>${p ? ' · در این بازی: ' + esc(p.name) : ''}</div></div><span class="muted">‹</span></button>`; }).join('')}</div>`
+      : `<div class="empty">هنوز کارتی ثبت نشده است.<br>کارت‌هایی که در اپ اندروید یا این صفحه تنظیم شده‌اند، با اولین نزدیک کردن خودکار اضافه می‌شوند.</div>`}
+    <button class="btn primary" style="margin-top:14px" data-a="go" data-to="cardEdit" data-fresh="1">＋ کارت جدید</button>
+    ${hasWebNfc && !nfcOn ? `<button class="btn ghost" style="margin-top:10px" data-a="nfc">روشن کردن NFC برای خواندن کارت</button>` : ''}
+    <div class="note" style="margin-top:16px">${isIOS ? 'iPhone فقط لینکِ روی کارت را می‌خواند و نمی‌تواند روی کارت بنویسد. برای نوشتن، لینک هر کارت را کپی کنید و با اپ رایگانی مثل «NFC Tools» (Write ← Add a record ← URL) روی کارت بنویسید، یا کارت‌ها را با اپ اندروید تنظیم کنید.' : 'کارت‌هایی که با اپ اندروید تنظیم شده‌اند اینجا هم شناخته می‌شوند.'}</div>
+  </div>`;
+};
+R.cardEdit = () => {
+  const ex = ui.code ? cardByCode(ui.code) : null;
+  let n = 1; while (cardByCode('monopoly' + two(n))) n++;
+  const c = ui.form || (ui.form = ex ? {...ex} : {code: 'monopoly' + two(n), name: 'کارت ' + n, color: '', design: '', phone: S.app.phone || '', uid: ui.uid || ''});
+  const link = cardLink(c);
+  app.innerHTML = `${bar(ex ? 'ویرایش کارت' : 'کارت جدید', 'cards')}<div class="wrap">
+    <div style="text-align:center">${swatch(c).replace('sw8"', 'sw8" style="width:90px;height:62px;font-size:36px;margin:auto;background:' + hexOf(c) + '"')}</div>
+    ${c.uid ? `<p class="muted" style="text-align:center;font-size:13px">شناسه کارت: <bdi class="num">${esc(c.uid)}</bdi></p>` : ''}
+    <label class="f">نام کارت</label><input class="inp" data-cf="name" value="${esc(c.name)}">
+    <label class="f">کد مخصوص کارت</label><input class="inp num" dir="ltr" data-cf="code" value="${esc(c.code)}">
+    <h2 class="sec">رنگ</h2><div class="dots"><button class="dot ${!c.color ? 'on' : ''}" style="background:var(--raised2)" data-a="cfc" data-v="" aria-label="بدون رنگ">⦸</button>${COLORS.map(([nm, h]) =>
+      `<button class="dot ${c.color === h ? 'on' : ''}" style="background:#${h}" data-a="cfc" data-v="${h}" aria-label="${nm}" title="${nm}"></button>`).join('')}</div>
+    <h2 class="sec">طرح</h2><div class="designs"><button class="dz ${!c.design ? 'on' : ''}" data-a="cfd" data-v=""><b>💳</b>بدون طرح</button>${DESIGNS.map(([k, nm, e]) =>
+      `<button class="dz ${c.design === k ? 'on' : ''}" data-a="cfd" data-v="${k}"><b>${e}</b>${nm}</button>`).join('')}</div>
+    <label class="f">شماره تماس (برای پیدا شدن کارت گم‌شده)</label><input class="inp num" dir="ltr" inputmode="tel" data-cf="phone" value="${esc(c.phone)}" placeholder="09xxxxxxxxx">
+    <button class="btn primary" style="margin-top:18px" data-a="cfsave">ذخیره کارت</button>
+    ${ex ? `<h2 class="sec">روی خود کارت</h2>
+      ${hasWebNfc ? `<button class="btn ghost" data-a="cfwrite">نوشتن مشخصات روی کارت</button>` : ''}
+      ${link ? `<button class="btn ghost" style="margin-top:10px" data-a="cfcopy">کپی لینک کارت (برای NFC Tools)</button>` : `<div class="note warn">برای ساختن لینک کارت، اول در تنظیمات «آدرس صفحه برای کارت‌ها» را وارد کنید.</div>`}
+      <button class="btn ghost red" style="margin-top:22px" data-a="cfdel">حذف از بانک کارت‌ها</button>` : ''}
+  </div>`;
+};
+function saveCardForm() {
+  const f = ui.form, ex = ui.code ? cardByCode(ui.code) : null;
+  f.name = f.name.trim(); f.code = latin(f.code).trim(); f.phone = latin(f.phone || '').trim();
+  if (!f.name) return errorBox('نام کارت را وارد کنید.');
+  if (!f.code) return errorBox('کد کارت را وارد کنید.');
+  const dup = cardByCode(f.code); if (dup && dup !== ex) return errorBox('این کد قبلاً برای کارت دیگری استفاده شده است.');
+  if (ex) {
+    // کد جدید در بازی‌ها هم به‌روز می‌شود
+    const old = ex.code; Object.assign(ex, f);
+    if (norm(old) !== norm(f.code)) for (const g of S.games) for (const p of g.players) if (norm(p.card) === norm(old)) p.card = f.code;
+    if (S.draft) for (const p of S.draft.players) if (norm(p.card) === norm(old)) p.card = f.code;
+  } else S.cards.push({...f});
+  if (f.phone) S.app.phone = f.phone;
+  save(); toast('کارت ذخیره شد.'); go('cardEdit', {code: f.code});
+}
+
+// ───────── تاریخچه و مرور ─────────
+function txRow(g, t, pid) {
+  const delta = pid == null ? null : (t.to === pid ? t.amount : -t.amount);
+  const rev = isReversed(g, t);
+  return `<div class="item" style="${rev ? 'opacity:.55' : ''}"><div class="grow"><div class="t" style="font-size:15.5px">${txLabel(t)}${rev ? ' <small class="muted">(برگشت خورده)</small>' : ''}</div>
+    <div class="s">${esc(party(g, t.from))} ← ${esc(party(g, t.to))}</div><div class="s">${stamp(t.t)}</div></div>
+    <div style="text-align:left">${delta == null ? money(t.amount) : `<span class="${delta > 0 ? 'plus' : 'minus'}">${money(delta, true)}</span>`}
+    ${pid != null ? `<div class="s muted">${money(t.to === pid ? t.ra : t.sa)}</div>` : ''}</div></div>`;
+}
+R.history = () => {
+  const g = S.games.find(x => x.id === (ui.gid ?? game()?.id)); if (!g) return go('home');
+  const pid = ui.pid != null ? Number(ui.pid) : null;
+  const list = [...g.txs].reverse().filter(t => pid == null || t.from === pid || t.to === pid);
+  const canUndo = g.status === 'active';
+  app.innerHTML = `${bar(pid != null ? 'تاریخچه ' + esc(P(g, pid).name) : 'تاریخچه کل بازی', '')}<div class="wrap">
+    ${canUndo ? `<button class="btn ghost" style="margin-bottom:12px;border-color:var(--orange);color:var(--orange)" data-a="undo" ${pid != null ? `data-pid="${pid}"` : ''}>↶ برگشت آخرین تراکنش</button>` : ''}
+    ${list.length ? `<div class="list">${list.map(t => txRow(g, t, pid)).join('')}</div>` : '<div class="empty">تراکنشی ثبت نشده است.</div>'}</div>`;
+  app.querySelector('.bar').insertAdjacentHTML('afterbegin', `<button class="icon" data-a="back" aria-label="بازگشت">→</button>`);
+};
+R.overview = () => {
+  const g = game(); if (!g) return go('home');
+  const ps = [...g.players].sort((a, b) => b.balance - a.balance);
+  app.innerHTML = `${bar('موجودی همه بازیکنان')}<div class="wrap"><div class="list">${ps.map(p => `<button class="item" data-a="go" data-to="player" data-pid="${p.id}">${swatch(cardByCode(p.card))}<div class="grow"><div class="t">${esc(p.name)}</div></div><b>${money(p.balance)}</b></button>`).join('')}</div>
+    <p class="muted" style="text-align:center">مجموع: ${money(ps.reduce((s, p) => s + p.balance, 0))}</p></div>`;
+};
+R.past = () => {
+  const list = S.games.filter(g => g.status === 'finished').reverse();
+  app.innerHTML = `${bar('بازی‌های قبلی')}<div class="wrap">${list.length ? `<div class="list">${list.map(g => `<button class="item" data-a="go" data-to="gameDetail" data-gid="${g.id}"><div class="grow"><div class="t">${esc(g.name)}</div>
+    <div class="s">${esc(fDate.format(new Date(g.start)))} · <bdi class="num">${hms(new Date(g.start)).slice(0, 5)}</bdi> · <bdi class="num">${g.players.length}</bdi> بازیکن · مدت <bdi class="num">${dur((g.end || Date.now()) - g.start)}</bdi></div></div><span class="muted">‹</span></button>`).join('')}</div>` : '<div class="empty">هنوز بازی تمام‌شده‌ای وجود ندارد.</div>'}</div>`;
+};
+R.gameDetail = () => {
+  const g = S.games.find(x => x.id === Number(ui.gid)); if (!g) return go('past');
+  const ps = [...g.players].sort((a, b) => b.balance - a.balance);
+  app.innerHTML = `${bar(esc(g.name), 'past')}<div class="wrap"><div class="note">${esc(fDate.format(new Date(g.start)))} — مدت بازی <bdi class="num">${dur((g.end || Date.now()) - g.start)}</bdi></div>
+    <h2 class="sec">موجودی پایانی</h2><div class="list">${ps.map((p, i) => `<div class="item"><b style="width:26px">${i === 0 ? '🏆' : i + 1}</b><div class="grow"><div class="t">${esc(p.name)}</div></div><b>${money(p.balance)}</b></div>`).join('')}</div>
+    <button class="btn ghost" style="margin-top:14px" data-a="go" data-to="history" data-gid="${g.id}">تاریخچه کامل</button></div>`;
+};
+
+// ───────── تنظیمات ─────────
+R.settings = () => {
+  const g = game(), st = g ? g.settings : S.app;
+  app.innerHTML = `${bar('تنظیمات')}<div class="wrap">
+    <h2 class="sec">${g ? 'این بازی' : 'پیش‌فرض بازی‌های جدید'}</h2><div class="list">
+      <label class="sw"><span class="grow">واحد پول</span><input class="inp" style="width:120px;min-height:40px;font-size:16px" data-set="currency" value="${esc(st.currency)}"></label>
+      <label class="sw"><span class="grow">اجازه موجودی منفی</span><input type="checkbox" data-set="allowNegative" ${st.allowNegative ? 'checked' : ''}></label>
+      <label class="sw"><span class="grow">تأیید قبل از هر تراکنش</span><input type="checkbox" data-set="confirm" ${st.confirm ? 'checked' : ''}></label></div>
+    <h2 class="sec">برنامه</h2><div class="list">
+      <label class="sw"><span class="grow">صدای تأیید تراکنش</span><input type="checkbox" data-app="sound" ${S.app.sound ? 'checked' : ''}></label>
+      <label class="sw"><span class="grow">روشن ماندن صفحه در بازی</span><input type="checkbox" data-app="awake" ${S.app.awake ? 'checked' : ''}></label></div>
+    <h2 class="sec">آدرس صفحه برای کارت‌ها</h2>
+    <input class="inp num" dir="ltr" data-app="base" value="${esc(S.app.base)}" placeholder="https://…github.io/…/">
+    <p class="muted" style="font-size:13.5px">همان آدرسی که این صفحه را با آن در Safari باز می‌کنید. لینک روی کارت‌ها با این آدرس ساخته می‌شود تا iPhone با نزدیک کردن کارت، همین صفحه را باز کند.
+      ${!S.app.base && /^https?:/.test(location.href) ? `<button class="qc" style="margin-top:6px" data-a="usehere">استفاده از آدرس فعلی</button>` : ''}</p>
+    <h2 class="sec">کارت‌ها و بازی‌ها</h2><div class="list">
+      <button class="item" data-a="go" data-to="cards"><div class="grow t">بانک کارت‌ها</div><span class="muted">‹</span></button>
+      <button class="item" data-a="go" data-to="past"><div class="grow t">بازی‌های قبلی</div><span class="muted">‹</span></button></div>
+    <h2 class="sec">پشتیبان‌گیری</h2>
+    <div class="note warn">اطلاعات فقط در مرورگر همین گوشی ذخیره می‌شود. پاک کردن اطلاعات Safari یا مدت طولانی استفاده نکردن ممکن است آن را پاک کند؛ بعد از هر بازی پشتیبان بگیرید.</div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" data-a="export">ذخیره پشتیبان</button><button class="btn ghost" data-a="import">بازیابی پشتیبان</button></div>
+    <input type="file" id="imp" accept=".json,application/json,text/plain" hidden>
+    <div class="list" style="margin-top:22px"><button class="item" data-a="go" data-to="about"><div class="grow t">درباره برنامه</div><span class="muted">نسخه <bdi class="num">${VERSION}</bdi></span></button></div>
+  </div>`;
+};
+async function exportBackup() {
+  const json = JSON.stringify({format: 'monopoly-nfc-web', version: 1, exportedAt: Date.now(), data: {...S, pending: null}});
+  const name = `monopoly-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  try { const dl = window.claude?.use ? await window.claude.use('downloads') : null; if (dl) { await dl.save({filename: name, data: json}); return; } } catch (e) {}
+  try {
+    const file = new File([json], name, {type: 'application/json'});
+    if (navigator.canShare && navigator.canShare({files: [file]})) { await navigator.share({files: [file], title: 'پشتیبان مونوپولی'}); return; }
+  } catch (e) { if (e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], {type: 'application/json'})); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+async function importText(text) {
+  try {
+    const j = JSON.parse(text); if (j.format !== 'monopoly-nfc-web' || !j.data) throw 0;
+    if (!await confirmBox('بازیابی پشتیبان', [['بازی‌ها', `<bdi class="num">${(j.data.games || []).length}</bdi>`], ['کارت‌ها', `<bdi class="num">${(j.data.cards || []).length}</bdi>`]], {msg: 'اطلاعات فعلی این صفحه با فایل پشتیبان جایگزین می‌شود.', ok: 'بازیابی', cls: 'orange'})) return;
+    S = Object.assign(blank(), j.data); S.app = Object.assign(blank().app, j.data.app || {}); S.pending = null; save(); toast('پشتیبان بازیابی شد.'); go('home');
+  } catch (e) { errorBox('فایل انتخاب‌شده پشتیبان این برنامه نیست.'); }
+}
+
+R.about = () => {
+  const F = [['💳', 'کارتخوان بانکی', 'کارت بازیکن را نزدیک کنید تا نام، موجودی و آخرین تراکنش نمایش داده شود.'],
+    ['＋', 'افزایش و کاهش موجودی', 'با صفحه‌کلید بزرگ، مبالغ آماده و دکمه‌های ۱۰، ۲۰ و ۳۰ درصد موجودی.'],
+    ['⇄', 'انتقال بین بازیکنان', 'مبلغ، کارت گیرنده، تأیید. انتقال یا کامل انجام می‌شود یا اصلاً.'],
+    ['👥', 'کاهش و انتقال همگانی', 'کسر از همه بازیکنان، یا پرداخت یک بازیکن به همه بقیه.'],
+    ['🗂', 'بانک کارت‌ها', 'نام، کد، رنگ، طرح و شماره تماس هر کارت؛ کارت‌های تنظیم‌شده در اپ اندروید خودکار شناخته می‌شوند.'],
+    ['↶', 'برگشت تراکنش', 'اشتباه‌ها با تراکنش معکوس اصلاح می‌شوند؛ چیزی پاک نمی‌شود.'],
+    ['⏱', 'ساعت، تاریخ شمسی و زمان بازی', 'زمان بازی از لحظه واقعی شروع حساب می‌شود.'],
+    ['🗄', 'تاریخچه، بازی‌های قبلی و پشتیبان', 'همه تراکنش‌ها با تاریخ و ساعت، و ذخیره در فایل.']];
+  app.innerHTML = `${bar('درباره برنامه')}<div class="wrap" style="text-align:center"><div class="wordmark" style="margin-top:14px">MONOPOLY</div>
+    <h2 style="margin:12px 0 0">کارتخوان مونوپولی</h2><p class="muted" style="margin:0">نسخه وب <bdi class="num">${VERSION}</bdi></p>
+    <p style="text-align:right">پول کاغذی بازی را با کارت جایگزین می‌کند. موجودی هرگز روی کارت نیست و همه اطلاعات فقط روی همین گوشی می‌ماند. برنامه قوانین بازی را اجرا نمی‌کند و فقط کار بانک را انجام می‌دهد.</p>
+    <div class="list" style="text-align:right">${F.map(([i, t, d]) => `<div class="item"><span style="font-size:24px;width:34px;text-align:center">${i}</span><div class="grow"><div class="t">${t}</div><div class="s">${d}</div></div></div>`).join('')}</div>
+    <h2 class="sec" style="text-align:right">NFC در این نسخه</h2><div class="note" style="text-align:right">
+    iPhone (XS و جدیدتر): کارت را بالای پشت گوشی بگیرید و روی اعلان بزنید؛ لینک روی کارت همین صفحه را باز می‌کند.<br>
+    اندروید با Chrome: «روشن کردن NFC» را بزنید تا کارت‌ها مستقیم خوانده شوند.<br>
+    هر گوشی بازی‌های خودش را دارد؛ اطلاعات بین گوشی‌ها مشترک نیست.</div></div>`;
+};
+
+// ───────── رویدادها ─────────
+const A = {
+  go: d => { const x = {}; if (d.pid) x.pid = Number(d.pid); if (d.gid) x.gid = Number(d.gid); if (d.code) x.code = d.code; if (d.fresh) x.fresh = true; go(d.to, x); },
+  back: () => {
+    const g = S.games.find(x => x.id === ui.gid);
+    if (g && g.status === 'finished') return go('gameDetail', {gid: g.id});
+    if (ui.pid != null && game()) return go('player', {pid: Number(ui.pid)});
+    go(game() ? 'home' : 'past');
+  },
+  scrim: (d, el, e) => { if (e.target === el) close(); },
+  close: d => close(d.v === undefined ? undefined : d.v),
+  nameok: () => {
+    const n = document.getElementById('nb-n').value.trim(); const b = document.getElementById('nb-b');
+    if (!n) return document.getElementById('nb-n').focus();
+    close({name: n, balance: b ? parseAmt(b.value) : null});
+  },
+  menu: async () => {
+    const v = await overlay(`<div class="list">${[['overview', 'موجودی همه بازیکنان'], ['history', 'تاریخچه کل بازی'], ['undo', 'برگشت آخرین تراکنش'], ['manual', 'انتخاب بازیکن از فهرست'],
+      ['wall', 'کاهش همگانی'], ['tall', 'انتقال همگانی'], ['cards', 'بانک کارت‌ها'], ['settings', 'تنظیمات'], ['past', 'بازی‌های قبلی'], ['about', 'درباره برنامه'], ['end', 'پایان بازی']]
+      .map(([k, t]) => `<button class="item" data-a="close" data-v="${k}"><div class="grow t" style="font-weight:600${k === 'end' ? ';color:var(--red)' : ''}">${t}</div></button>`).join('')}</div>`, false);
+    if (!v) return;
+    if (['overview', 'history', 'cards', 'settings', 'past', 'about'].includes(v)) return go(v);
+    if (v === 'undo') return flowUndo();
+    if (v === 'manual') return A.manual();
+    if (v === 'wall') return flowWithdrawAll();
+    if (v === 'tall') return flowTransferAll();
+    if (v === 'end') {
+      if (!await confirmBox('پایان بازی', [['بازی', esc(game().name)]], {msg: 'بازی تمام و با همه تراکنش‌ها در «بازی‌های قبلی» ذخیره می‌شود.', ok: 'پایان بازی', cls: 'red'})) return;
+      const g = game(); g.status = 'finished'; g.end = Date.now(); save(); toast('بازی تمام شد.'); go('home');
+    }
+  },
+  manual: async () => { const g = game(); const v = await pickPlayer('انتخاب بازیکن', g.players); if (v != null) go('player', {pid: v}); },
+  nfc: () => startNfc(),
+  dep: () => flowDeposit(ui.pid), wd: () => flowWithdraw(ui.pid), tr: () => flowTransfer(ui.pid),
+  wall: () => flowWithdrawAll(), tall: () => flowTransferAll(),
+  undo: d => flowUndo(d.pid != null ? Number(d.pid) : undefined),
+  key: d => { const a = amt; a.pct = null; if (d.v === 'del') a.digits = a.digits.slice(0, -1); else { const nx = (a.digits + d.v).replace(/^0+/, ''); if (nx.length <= 13) a.digits = nx; } render(); },
+  qadd: d => { const a = amt; const nx = parseInt(a.digits || '0', 10) + Number(d.v); if (String(nx).length <= 13) { a.digits = String(nx); a.pct = null; render(); } },
+  pct: d => { const a = amt, p = P(game(), a.pid), x = Number(d.v), v = Math.floor(p.balance * x / 100); a.digits = v > 0 ? String(v) : ''; a.pct = x; render(); },
+  amtok: () => { const a = amt, v = parseInt(a.digits || '0', 10); if (v > 0) { amt = null; a.done(v); } },
+  amtcancel: () => { const a = amt; amt = null; a.done(null); go(a.pid != null && game() ? 'player' : 'home', {pid: a.pid}); },
+  unpend: () => { const pd = S.pending; clearPending(); go(pd?.kind === 'draftCard' ? 'newgame' : pd?.kind === 'transfer' ? 'player' : 'home', {pid: pd?.from}); },
+  waitpick: d => { const pd = S.pending; const pid = Number(d.v); if (pd.kind === 'transfer') finishTransfer(pd.from, pid, pd.amount); else finishTransferAll(pid); },
+  draftpick: () => draftPickCard(),
+  dadd: () => setPending({kind: 'draftCard', title: 'افزودن بازیکن', prompt: 'کارت بازیکن را نزدیک کنید', sub: 'یا کارت را از فهرست انتخاب کنید.'}),
+  drm: d => { S.draft.players.splice(Number(d.v), 1); save(); render(); },
+  gstart: () => startGame(),
+  cfc: d => { ui.form.color = d.v; render(); }, cfd: d => { ui.form.design = d.v; render(); },
+  cfsave: () => saveCardForm(),
+  cfwrite: () => { const c = cardByCode(ui.code); if (c) writeCard(c); },
+  cfcopy: async () => { const c = cardByCode(ui.code); const l = cardLink(c); try { await navigator.clipboard.writeText(l); toast('لینک کارت کپی شد.'); } catch (e) { await overlay(`<h3>لینک کارت</h3><textarea class="inp num" dir="ltr" rows="5" readonly>${esc(l)}</textarea><button class="btn" style="margin-top:10px" data-a="close">بستن</button>`); } },
+  cfdel: async () => {
+    const c = cardByCode(ui.code); const p = playerByCard(game(), c.code);
+    if (p) return errorBox(`این کارت در بازی فعال به «${p.name}» وصل است و حذف نمی‌شود.`);
+    if (!await confirmBox('حذف از بانک کارت‌ها', [['کارت', chip(c)]], {ok: 'حذف', cls: 'red'})) return;
+    S.cards = S.cards.filter(x => x !== c); save(); go('cards');
+  },
+  usehere: () => { S.app.base = location.href.replace(/#.*$/, ''); save(); render(); },
+  export: () => exportBackup(),
+  import: () => document.getElementById('imp').click(),
+};
+document.addEventListener('click', e => {
+  unlockAudio();
+  const el = e.target.closest('[data-a]'); if (!el) return;
+  const f = A[el.dataset.a]; if (f) { if (el.dataset.a !== 'scrim') e.stopPropagation(); f(el.dataset, el, e); }
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.matches('[data-money]')) { const v = parseAmt(t.value); t.value = v ? fmt(v) : ''; }
+  if (t.dataset.draft) { const d = draft(), k = t.dataset.draft;
+    d[k] = t.type === 'checkbox' ? t.checked : k === 'balance' ? parseAmt(t.value) : k === 'start' ? (new Date(t.value).getTime() || Date.now()) : t.value; save(); }
+  if (t.dataset.cf) ui.form[t.dataset.cf] = t.value;
+  if (t.dataset.set) { const g = game(), st = g ? g.settings : S.app; st[t.dataset.set] = t.type === 'checkbox' ? t.checked : t.value; save(); }
+  if (t.dataset.app) { S.app[t.dataset.app] = t.type === 'checkbox' ? t.checked : t.value.trim(); save(); if (t.dataset.app === 'sound' && t.checked) { unlockAudio(); chime(); } keepAwake(); }
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'imp' && e.target.files[0]) { const r = new FileReader(); r.onload = () => importText(r.result); r.readAsText(e.target.files[0]); e.target.value = ''; }
+  if (e.target.matches('[data-draft="start"]')) render();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && resolver) close(); if (e.key === 'Enter' && document.getElementById('nb-n')) A.nameok(); });
+window.addEventListener('storage', e => { if (e.key === KEY) { load(); if (!resolver && ui.s !== 'amount') render(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { load(); if (!resolver && ui.s !== 'amount') render(); } keepAwake(); });
+
+// ساعت و زمان بازی
+setInterval(() => {
+  const now = new Date(), c = document.getElementById('clk'), t = document.getElementById('gtm'), d = document.getElementById('dte'), g = game();
+  if (c) c.textContent = hms(now); if (d) d.textContent = jLong(now); if (t && g) t.textContent = dur(now - g.start);
+}, 1000);
+
+// کارتی که با لینک باز شده (iPhone: اعلان NFC ← Safari)
+function fromHash() {
+  const data = parseCardUrl(location.hash);
+  if (!data) return false;
+  history.replaceState(null, '', location.pathname + location.search);
+  handleCard({data});
+  return true;
+}
+window.addEventListener('hashchange', fromHash);
+
+load();
+if (pendingFresh()) ui = {s: 'wait'}; else if (S.pending) { S.pending = null; save(); }
+try { navigator.storage?.persist?.(); } catch (e) {}
+if (!S.app.base && /github\.io$/.test(location.hostname)) { S.app.base = location.href.replace(/#.*$/, ''); save(); }
+if ('serviceWorker' in navigator && location.protocol === 'https:' && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {});
+render();
+fromHash();
+})();
+</script>
+</body></html>
