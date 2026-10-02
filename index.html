@@ -56,6 +56,9 @@ button{cursor:pointer}
 .btn.ghost{background:transparent;border:1.5px solid var(--line)}
 .btn.ghost.red{border-color:var(--red);color:var(--red);background:transparent}
 .btn.ghost.blue{border-color:var(--blue);color:var(--blue);background:transparent}
+.btn.ghost.green{border-color:var(--green);color:var(--green);background:transparent}
+.btn.grp{flex-direction:column;gap:2px;min-height:60px;padding:6px 2px;font-size:14px}.btn.grp span{font-size:18px;line-height:1}
+.btn.ghost.bk{border-color:var(--red);color:var(--red);border-width:2px;margin-top:10px;min-height:56px;font-size:18px;font-weight:800}
 .btn:disabled{opacity:.4}
 .row{display:flex;gap:10px}.row>*{flex:1}
 .stack>*+*{margin-top:10px}
@@ -161,7 +164,7 @@ h2.sec{font-size:15px;color:var(--gold);margin:22px 4px 8px;font-weight:700}
 <script>
 (() => {
 'use strict';
-const VERSION = '1.5.0';
+const VERSION = '1.2.0';
 const KEY = 'mnp-web-v1';
 const MSG_INSUF = 'موجودی کافی نیست.';
 
@@ -276,13 +279,14 @@ function maybeInstall() {
 const CHART = ['#E9B949', '#4F8EF7', '#E5484D', '#2FBF71', '#F08A24', '#9B7BEA', '#E85D9E', '#14B8B0', '#B5BCC9', '#C08457'];
 function stats(g) {
   const ps = [...g.players].sort((a, b) => b.balance - a.balance);
-  const s = {ps, series: {}, volume: 0, bankIn: 0, bankOut: 0, rev: 0, biggest: null, cnt: {}, got: {}, paid: {}};
+  const s = {ps, series: {}, volume: 0, bankIn: 0, bankOut: 0, rev: 0, biggest: null, cnt: {}, got: {}, paid: {}, bankr: []};
   const bal = {};
   for (const p of ps) { bal[p.id] = p.initial; s.series[p.id] = [p.initial]; }
   for (const t of [...g.txs].sort((a, b) => a.id - b.id)) {
     if (t.type === 'initial') continue;
     if (t.type === 'reversal') s.rev++;
     else {
+      if (t.type === 'bankruptcy' && !isReversed(g, t)) s.bankr.push(t);
       if (!s.biggest || t.amount > s.biggest.amount) s.biggest = t;
       if (t.from != null) { s.cnt[t.from] = (s.cnt[t.from] || 0) + 1; s.paid[t.from] = (s.paid[t.from] || 0) + t.amount; }
       if (t.to != null) { s.cnt[t.to] = (s.cnt[t.to] || 0) + 1; s.got[t.to] = (s.got[t.to] || 0) + t.amount; }
@@ -347,7 +351,7 @@ async function keepAwake() {
 
 // ───────── عملیات مالی ─────────
 const LABEL = {initial: 'موجودی اولیه', deposit: 'افزایش موجودی', withdraw: 'کاهش موجودی', transfer: 'انتقال', reversal: 'برگشت تراکنش', bankruptcy: 'ورشکستگی'};
-const KIND = {withdraw_all: 'کاهش همگانی', deposit_all: 'افزایش همگانی', transfer_all: 'انتقال به بقیه', reversal: 'برگشت عملیات همگانی', bankruptcy_to_bank: 'ورشکستگی به بانک', bankruptcy_to_player: 'ورشکستگی به بازیکن'};
+const KIND = {withdraw_all: 'کاهش همگانی', deposit_all: 'افزایش همگانی', transfer_all: 'انتقال به بقیه', reversal: 'برگشت عملیات همگانی'};
 const txLabel = t => KIND[t.kind] || LABEL[t.type];
 function move(g, o) {
   if (!Number.isInteger(o.amount) || o.amount <= 0) throw new MoneyError('مبلغ نامعتبر است.');
@@ -369,34 +373,24 @@ const opWithdrawAll = a => atomic(() => {
   const batch = uuid(), at = Date.now();
   return g.players.map(p => move(g, {type: 'withdraw', from: p.id, amount: a, batch, kind: 'withdraw_all', at}));
 });
+const opDepositAll = a => atomic(() => {
+  const g = needGame(); if (!g.players.length) throw new MoneyError('بازیکنی وجود ندارد.');
+  const batch = uuid(), at = Date.now();
+  return g.players.map(p => move(g, {type: 'deposit', to: p.id, amount: a, batch, kind: 'deposit_all', at}));
+});
+// ورشکستگی: کل موجودی بازیکن به بازیکن دیگر یا بانک (to = null) منتقل می‌شود.
+const opBankrupt = (from, to) => atomic(() => {
+  const g = needGame(), f = P(g, from);
+  if (!f || f.balance <= 0) throw new MoneyError('موجودی این بازیکن صفر یا منفی است و چیزی برای انتقال نیست.');
+  if (to != null && (to === from || !P(g, to))) throw new MoneyError('بازیکن دریافت‌کننده نامعتبر است.');
+  return move(g, {type: 'bankruptcy', from, to, amount: f.balance});
+});
 const opTransferAll = (from, a) => atomic(() => {
   const g = needGame(); const others = g.players.filter(p => p.id !== from);
   if (!others.length) throw new MoneyError('بازیکن دیگری وجود ندارد.');
   if (!g.settings.allowNegative && P(g, from).balance < a * others.length) throw new MoneyError(MSG_INSUF);
   const batch = uuid(), at = Date.now();
   return others.map(p => move(g, {type: 'transfer', from, to: p.id, amount: a, batch, kind: 'transfer_all', at}));
-});
-const opDepositAll = a => atomic(() => {
-  const g = needGame();
-  const batch = uuid(), at = Date.now();
-  return g.players.map(p => move(g, {type: 'deposit', to: p.id, amount: a, batch, kind: 'deposit_all', at}));
-});
-const opTransferToOthers = (from, a) => atomic(() => {
-  const g = needGame(); const others = g.players.filter(p => p.id !== from);
-  if (!others.length) throw new MoneyError('بازیکن دیگری وجود ندارد.');
-  if (!g.settings.allowNegative && P(g, from).balance < a * others.length) throw new MoneyError(MSG_INSUF);
-  const batch = uuid(), at = Date.now();
-  return others.map(p => move(g, {type: 'transfer', from, to: p.id, amount: a, batch, kind: 'transfer_all', at}));
-});
-const opBankruptcy = (from, toId) => atomic(() => {
-  const g = needGame(); const p = P(g, from);
-  if (p.balance <= 0) throw new MoneyError('موجودی بازیکن صفر یا منفی است.');
-  if (toId == null) {
-    return move(g, {type: 'bankruptcy', from, amount: p.balance, kind: 'bankruptcy_to_bank'});
-  } else {
-    if (from === toId) throw new MoneyError('نمی‌توان به خودتان ورشکست کرد.');
-    return move(g, {type: 'bankruptcy', from, to: toId, amount: p.balance, kind: 'bankruptcy_to_player'});
-  }
 });
 const isReversed = (g, t) => g.txs.some(x => x.rev === t.id);
 function lastReversible(g, pid) {
@@ -502,10 +496,9 @@ R.home = () => {
     <button class="btn ghost" style="max-width:260px;margin-top:10px" data-a="manual">انتخاب بازیکن از فهرست</button>
   </div></div>
   <div class="foot"><div class="row">
-    <button class="btn ghost red" data-a="wall">کاهش همگانی</button>
-    <button class="btn ghost green" data-a="depall">افزایش همگانی</button></div>
-  <div class="row">
-    <button class="btn ghost blue" data-a="tall">انتقال به بقیه</button></div>${ver}</div>`;
+    <button class="btn ghost red grp" data-a="wall"><span>👥</span>کاهش همگانی</button>
+    <button class="btn ghost green grp" data-a="dall"><span>➕</span>افزایش همگانی</button>
+    <button class="btn ghost blue grp" data-a="tall"><span>🔁</span>انتقال به بقیه</button></div>${ver}</div>`;
 };
 function readyHint() {
   if (hasWebNfc) return nfcOn ? 'منتظر کارت بازیکن…' : 'برای خواندن کارت، یک بار «روشن کردن NFC» را بزنید.';
@@ -530,8 +523,7 @@ R.player = () => {
       <button class="act" style="background:var(--red)" data-a="wd"><span>－</span>کاهش موجودی</button>
       <button class="act" style="background:var(--blue)" data-a="tr"><span>⇄</span>انتقال</button>
       <button class="act" style="background:var(--orange);color:#1a1a1a" data-a="go" data-to="history" data-pid="${p.id}"><span>☰</span>تاریخچه</button>
-      <button class="act" style="background:var(--red)" data-a="bk" data-pid="${p.id}"><span>💥</span>ورشکستگی</button>
-    </div></div>`;
+    </div><button class="btn ghost bk" data-a="bk">🏳 ورشکستگی</button></div>`;
 };
 
 // صفحه‌کلید مبلغ
@@ -556,7 +548,7 @@ function askAmount(o) { return new Promise(res => { amt = Object.assign({digits:
 // انتظار برای کارت (انتقال، انتقال همگانی، افزودن بازیکن)
 R.wait = () => {
   const pd = S.pending, g = game();
-  const list = (pd.kind === 'transfer' ? g.players.filter(p => p.id !== pd.from) : pd.kind === 'payerAll' ? g.players : []);
+  const list = (pd.kind === 'transfer' || pd.kind === 'bankrupt' ? g.players.filter(p => p.id !== pd.from) : pd.kind === 'payerAll' ? g.players : []);
   app.innerHTML = `${bar(esc(pd.title), '', `<button class="icon" data-a="unpend" aria-label="لغو">✕</button>`)}<div class="wrap" style="text-align:center">
     <div class="nfc">💳</div><div class="tapme" style="font-size:22px">${esc(pd.prompt)}</div>
     <p class="muted">${esc(pd.sub || '')}</p><p class="muted" style="font-size:14px">${readyHint()}</p>
@@ -606,43 +598,45 @@ async function flowWithdrawAll() {
   if (!await confirmBox('تأیید کاهش همگانی', [['بازیکنان', `<bdi class="num">${g.players.length}</bdi> نفر`], ['از هر نفر', money(-a, true)], ['مجموع', money(total)]], {msg: esc(g.players.map(p => p.name).join('، ')), ok: 'کسر از همه', cls: 'red'})) return go('home');
   run(() => opWithdrawAll(a), txs => ['کاهش همگانی انجام شد', [['بازیکنان', `<bdi class="num">${txs.length}</bdi> نفر`], ['از هر نفر', money(-a, true)], ['مجموع', money(total)], ['زمان', stamp(txs[0].t)]]]);
 }
+async function flowDepositAll() {
+  const g = game(); if (!g || !g.players.length) return errorBox('بازیکنی در بازی وجود ندارد.');
+  const a = await askAmount({title: 'افزایش همگانی', color: 'var(--green)', sub: 'مبلغ افزایش برای هر بازیکن'}); if (!a) return;
+  const total = a * g.players.length;
+  if (!await confirmBox('تأیید افزایش همگانی', [['بازیکنان', `<bdi class="num">${g.players.length}</bdi> نفر`], ['به هر نفر', money(a, true)], ['مجموع', money(total)]], {msg: esc(g.players.map(p => p.name).join('، ')), ok: 'افزایش برای همه', cls: 'green'})) return go('home');
+  run(() => opDepositAll(a), txs => ['افزایش همگانی انجام شد', [['بازیکنان', `<bdi class="num">${txs.length}</bdi> نفر`], ['به هر نفر', money(a, true)], ['مجموع', money(total)], ['زمان', stamp(txs[0].t)]]]);
+}
+async function flowBankrupt(pid) {
+  const g = game(), p = g && P(g, pid); if (!p) return go('home');
+  if (p.balance <= 0) { await errorBox(`موجودی ${p.name} صفر یا منفی است و چیزی برای انتقال نیست.`); return go('player', {pid}); }
+  const others = g.players.filter(x => x.id !== pid);
+  const v = await overlay(`<h3>ورشکستگی ${esc(p.name)}</h3><p class="muted" style="margin-top:-6px">کل موجودی (${money(p.balance)}) به چه کسی برسد؟</p>
+    <div class="stack">${others.length ? `<button class="btn blue" data-a="close" data-v="player">👤 بازیکن دیگر (اسکن کارت)</button>` : ''}
+    <button class="btn primary" data-a="close" data-v="bank">🏦 بانک</button><button class="btn ghost" data-a="close">لغو</button></div>`);
+  if (!v) return go('player', {pid});
+  if (v === 'bank') return finishBankrupt(pid, null);
+  setPending({kind: 'bankrupt', from: pid, title: `ورشکستگی ${p.name}`, prompt: 'کارت بازیکن دریافت‌کننده را نزدیک کنید', sub: `کل موجودی ${p.name} به بازیکن دوم منتقل می‌شود.`});
+}
+async function finishBankrupt(from, to) {
+  clearPending();
+  const g = game(), f = P(g, from), t = to == null ? null : P(g, to);
+  if (to === from) { await errorBox('کارت دریافت‌کننده نمی‌تواند همان کارت ورشکسته باشد.'); return go('home'); }
+  const a = f.balance;
+  if (!await confirmBox('تأیید ورشکستگی', [['بازیکن ورشکسته', esc(f.name)], ['انتقال به', t ? esc(t.name) : 'بانک'], ['کل مبلغ', money(a)], [`موجودی ${esc(f.name)}`, money(0)], ...(t ? [[`موجودی ${esc(t.name)}`, money(t.balance + a)]] : [])],
+    {msg: 'کل موجودی منتقل می‌شود. در تاریخچه ثبت می‌شود و با «برگشت آخرین تراکنش» قابل برگشت است.', ok: 'ثبت ورشکستگی', cls: 'red'})) return go('home');
+  run(() => opBankrupt(from, to), x => ['ورشکستگی ثبت شد', [['بازیکن', esc(f.name)], ['انتقال به', t ? esc(t.name) : 'بانک'], ['مبلغ', money(x.amount)], [`موجودی ${esc(f.name)}`, money(x.sa)], ...(t ? [[`موجودی ${esc(t.name)}`, money(x.ra)]] : []), ['زمان', stamp(x.t)]]]);
+}
 function flowTransferAll() {
-  const g = game(); if (!g || g.players.length < 2) return errorBox('برای انتقال همگانی حداقل دو بازیکن لازم است.');
-  setPending({kind: 'payerAll', title: 'انتقال همگانی', prompt: 'کارت پرداخت‌کننده را نزدیک کنید', sub: 'پرداخت‌کننده به هر یک از بازیکنان دیگر پرداخت می‌کند.'});
+  const g = game(); if (!g || g.players.length < 2) return errorBox('برای انتقال به بقیه حداقل دو بازیکن لازم است.');
+  setPending({kind: 'payerAll', title: 'انتقال به بقیه', prompt: 'کارت پرداخت‌کننده را نزدیک کنید', sub: 'پرداخت‌کننده به هر یک از بازیکنان دیگر پرداخت می‌کند.'});
 }
 async function finishTransferAll(from) {
   clearPending();
   const g = game(), f = P(g, from);
-  const a = await askAmount({title: `انتقال به بقیه از ${f.name}`, color: 'var(--blue)', pid: from, sub: 'مبلغ برای هر بازیکن دیگر'}); if (!a) return;
+  const a = await askAmount({title: `انتقال به بقیه از ${f.name}`, color: 'var(--blue)', pid: from, sub: 'مبلغ برای هر بازیکن'}); if (!a) return;
   const others = g.players.filter(p => p.id !== from), total = a * others.length;
   if (!g.settings.allowNegative && f.balance < total) { await errorBox(`${MSG_INSUF} مجموع لازم: ${fmt(total)}`); return go('home'); }
   if (!await confirmBox('تأیید انتقال به بقیه', [['از', esc(f.name)], ['به', `<bdi class="num">${others.length}</bdi> بازیکن`], ['به هر نفر', money(a)], ['مجموع کسر', money(-total, true)], [`موجودی ${esc(f.name)}`, money(f.balance - total)]], {msg: esc(others.map(p => p.name).join('، ')), ok: 'انتقال به بقیه', cls: 'blue'})) return go('home');
-  run(() => opTransferToOthers(from, a), txs => ['انتقال به بقیه انجام شد', [['از', esc(f.name)], ['به', `<bdi class="num">${txs.length}</bdi> بازیکن`], ['به هر نفر', money(a)], ['مجموع', money(total)], [`موجودی ${esc(f.name)}`, money(txs[txs.length - 1].sa)], ['زمان', stamp(txs[0].t)]]]);
-}
-async function flowDepositAll() {
-  const g = game(); if (!g || !g.players.length) return errorBox('بازیکنی در بازی وجود ندارد.');
-  const a = await askAmount({title: 'افزایش همگانی', color: 'var(--green)', sub: 'مبلغ اضافه به هر بازیکن'}); if (!a) return;
-  const total = a * g.players.length;
-  if (!await confirmBox('تأیید افزایش همگانی', [['بازیکنان', `<bdi class="num">${g.players.length}</bdi> نفر`], ['به هر نفر', money(a, true)], ['مجموع', money(total)]], {msg: esc(g.players.map(p => p.name).join('، ')), ok: 'افزایش به همه', cls: 'green'})) return go('home');
-  run(() => opDepositAll(a), txs => ['افزایش همگانی انجام شد', [['بازیکنان', `<bdi class="num">${txs.length}</bdi> نفر`], ['به هر نفر', money(a, true)], ['مجموع', money(total)], ['زمان', stamp(txs[0].t)]]]);
-}
-async function flowTransferToOthers() {
-  const g = game(); if (!g || g.players.length < 2) return errorBox('برای انتقال به بقیه حداقل دو بازیکن لازم است.');
-  setPending({kind: 'payerAll', title: 'انتقال به بقیه', prompt: 'کارت پرداخت‌کننده را نزدیک کنید', sub: 'پرداخت‌کننده به هر یک از بازیکنان دیگر پرداخت می‌کند.'});
-}
-async function flowBankruptcy(pid) {
-  const g = game(), p = P(g, pid);
-  if (p.balance <= 0) return errorBox('موجودی بازیکن صفر یا منفی است.');
-  const others = g.players.filter(x => x.id !== pid);
-  const v = await overlay(`<h3>ورشکستگی ${esc(p.name)}</h3><div class="list">${[
-    `<button class="item" data-a="close" data-v="bank"><span style="font-size:24px;width:34px;text-align:center">🏦</span><div class="grow"><div class="t">به بانک</div><div class="s">موجودی کل ${fmt(p.balance)} ${esc(cur())} از بین می‌رود</div></div></button>`,
-    ...others.map(o => `<button class="item" data-a="close" data-v="${o.id}"><span style="font-size:24px;width:34px;text-align:center">👤</span><div class="grow"><div class="t">${esc(o.name)}</div><div class="s">موجودی کل ${fmt(p.balance)} ${esc(cur())} به ${esc(o.name)} منتقل می‌شود</div></div></button>`)
-  ].join('')}</div><button class="btn ghost" style="margin-top:12px" data-a="close">لغو</button>`, false);
-  if (!v) return;
-  const toId = v === 'bank' ? null : Number(v);
-  const toLabel = toId == null ? 'بانک' : P(g, toId).name;
-  if (!await confirmBox('تأیید ورشکستگی', [['بازیکن ورشکسته', esc(p.name)], ['مبلغ', money(-p.balance, true)], ['به', esc(toLabel)], ['موجودی جدید ' + esc(p.name), money(0)], ...(toId ? [`موجودی جدید ${esc(toLabel)}`, money(P(g, toId).balance + p.balance)] : [])], {msg: toId == null ? `موجودی کل ${esc(p.name)} از بین می‌رود (به بانک).` : `موجودی کل ${esc(p.name)} به ${esc(toLabel)} منتقل می‌شود.`, ok: toId == null ? 'ورشکستگی به بانک' : 'ورشکستگی به ' + esc(toLabel), cls: 'red'})) return go('home');
-  run(() => opBankruptcy(pid, toId), t => ['ورشکستگی ثبت شد', [['بازیکن', esc(p.name)], ['مبلغ', money(-t.amount, true)], ['به', esc(toLabel)], ['موجودی ' + esc(p.name), money(t.sa)], ...(toId ? [`موجودی ${esc(toLabel)}`, money(t.ra)] : []), ['زمان', stamp(t.t)]]);
+  run(() => opTransferAll(from, a), txs => ['انتقال به بقیه انجام شد', [['از', esc(f.name)], ['به', `<bdi class="num">${txs.length}</bdi> بازیکن`], ['به هر نفر', money(a)], ['مجموع', money(total)], [`موجودی ${esc(f.name)}`, money(txs[txs.length - 1].sa)], ['زمان', stamp(txs[0].t)]]]);
 }
 async function run(op, rc) {
   try { const r = op(); const [title, rows] = rc(r); receipt(title, rows); }
@@ -691,6 +685,7 @@ async function handleCard(input) {
     if (!p) { await errorBox(`«${c.name}» در این بازی به بازیکنی وصل نیست.`); return go('wait'); }
     if (pd.kind === 'transfer') return finishTransfer(pd.from, p.id, pd.amount);
     if (pd.kind === 'payerAll') return finishTransferAll(p.id);
+    if (pd.kind === 'bankrupt') return finishBankrupt(pd.from, p.id);
   }
   if (ui.s === 'cards' || ui.s === 'cardEdit') return go('cardEdit', {code: c.code});
   if (!g) { toast(`«${c.name}» شناسایی شد. برای استفاده، بازی جدید بسازید.`); return go(ui.s === 'newgame' ? 'newgame' : 'home'); }
@@ -890,7 +885,8 @@ R.summary = () => {
     ${w ? `<div class="winner"><div style="font-size:46px;line-height:1">🏆</div><div class="n">${esc(w.name)}</div><div style="font-size:22px;font-weight:800">${money(w.balance)}</div><div style="color:#555">${esc(g.name)}</div></div>` : ''}
     <h2 class="sec">اطلاعات بازی</h2>${kvs([['تاریخ', esc(fDate.format(new Date(g.start)))], ['شروع', `<bdi class="num">${hms(new Date(g.start))}</bdi>`],
       ...(g.end ? [['پایان', `<bdi class="num">${hms(new Date(g.end))}</bdi>`]] : []), ['مدت بازی', `<b class="num">${dur((g.end || Date.now()) - g.start)}</b>`],
-      ['بازیکنان', `<bdi class="num">${g.players.length}</bdi>`], ['تراکنش‌ها', `<bdi class="num">${txn}</bdi>`]])}
+      ['بازیکنان', `<bdi class="num">${g.players.length}</bdi>`], ['تراکنش‌ها', `<bdi class="num">${txn}</bdi>`],
+      ...(s.bankr.length ? [['ورشکستگی', `<bdi class="num">${s.bankr.length}</bdi>`]] : [])])}
     <h2 class="sec">رتبه‌بندی</h2>${s.ps.map((p, i) => { const ch = p.balance - p.initial; return `<div class="rank" style="border-right-color:${CHART[i % CHART.length]}">
       <b style="width:30px;font-size:20px">${['🥇', '🥈', '🥉'][i] || `<bdi class="num">${i + 1}</bdi>`}</b><div class="grow" style="flex:1"><div style="font-weight:700;font-size:17px">${esc(p.name)} ${chip(cardByCode(p.card))}</div>
       <div class="${ch >= 0 ? 'plus' : 'minus'}" style="font-size:13px">${money(ch, true)}</div></div><b>${money(p.balance)}</b></div>`; }).join('')}
@@ -901,6 +897,7 @@ R.summary = () => {
       ...(s.receiver ? [['بیشترین دریافت', `${esc(s.receiver.name)} ${money(s.got[s.receiver.id])}`]] : []),
       ...(s.payer ? [['بیشترین پرداخت', `${esc(s.payer.name)} ${money(s.paid[s.payer.id])}`]] : []),
       ['برگشت تراکنش', `<bdi class="num">${s.rev}</bdi>`]])}
+    ${s.bankr.length ? `<h2 class="sec">ورشکستگی‌ها</h2><div class="list">${s.bankr.map(t => `<div class="item" style="border-right:4px solid var(--red)"><div class="grow"><div class="t" style="font-size:15.5px">🏳 ${esc(party(g, t.from))} ← ${esc(party(g, t.to))}</div><div class="s">${stamp(t.t)}</div></div><b>${money(t.amount)}</b></div>`).join('')}</div>` : ''}
     <button class="btn ghost" style="margin-top:16px" data-a="go" data-to="history" data-gid="${g.id}">تاریخچه کامل</button>
     ${g.status === 'finished' ? `<button class="btn primary" style="margin-top:10px" data-a="go" data-to="newgame">▶ بازی جدید</button>` : ''}</div>`;
 };
@@ -954,8 +951,8 @@ R.about = () => {
   const F = [['💳', 'کارتخوان بانکی', 'کارت بازیکن را نزدیک کنید تا نام، موجودی و آخرین تراکنش نمایش داده شود.'],
     ['＋', 'افزایش و کاهش موجودی', 'با صفحه‌کلید بزرگ، مبالغ آماده و دکمه‌های ۱۰، ۲۰ و ۳۰ درصد موجودی.'],
     ['⇄', 'انتقال بین بازیکنان', 'مبلغ، کارت گیرنده، تأیید. انتقال یا کامل انجام می‌شود یا اصلاً.'],
-    ['👥', 'کاهش، افزایش و انتقال همگانی', 'کسر از همه، اضافه به همه، یا پرداخت یک بازیکن به بقیه.'],
-    ['💥', 'ورشکستگی بازیکن', 'کل موجودی یک بازیکن به بانک یا بازیکن دیگر منتقل می‌شود.'],
+    ['👥', 'کاهش، افزایش و انتقال به بقیه', 'کسر از همه بازیکنان، افزودن به همه، یا پرداخت یک بازیکن به همه بقیه.'],
+    ['🏳', 'ورشکستگی', 'بعد از اسکن کارت، کل موجودی بازیکن به بازیکن دیگر یا بانک منتقل می‌شود؛ در تاریخچه و خلاصه بازی ثبت و قابل برگشت است.'],
     ['🗂', 'بانک کارت‌ها', 'نام، کد، رنگ، طرح و شماره تماس هر کارت؛ کارت‌های تنظیم‌شده در اپ اندروید خودکار شناخته می‌شوند.'],
     ['↶', 'برگشت تراکنش', 'اشتباه‌ها با تراکنش معکوس اصلاح می‌شوند؛ چیزی پاک نمی‌شود.'],
     ['⏱', 'ساعت، تاریخ شمسی و زمان بازی', 'زمان بازی از لحظه واقعی شروع حساب می‌شود.'],
@@ -988,15 +985,15 @@ const A = {
   },
   menu: async () => {
     const v = await overlay(`<div class="list">${[['overview', 'موجودی همه بازیکنان'], ['history', 'تاریخچه کل بازی'], ['undo', 'برگشت آخرین تراکنش'], ['manual', 'انتخاب بازیکن از فهرست'],
-      ['wall', 'کاهش همگانی'], ['depall', 'افزایش همگانی'], ['tall', 'انتقال به بقیه'], ['cards', 'بانک کارت‌ها'], ['settings', 'تنظیمات'], ['past', 'بازی‌های قبلی'], ['about', 'درباره برنامه'], ['end', 'پایان بازی']]
+      ['wall', 'کاهش همگانی'], ['dall', 'افزایش همگانی'], ['tall', 'انتقال به بقیه'], ['cards', 'بانک کارت‌ها'], ['settings', 'تنظیمات'], ['past', 'بازی‌های قبلی'], ['about', 'درباره برنامه'], ['end', 'پایان بازی']]
       .map(([k, t]) => `<button class="item" data-a="close" data-v="${k}"><div class="grow t" style="font-weight:600${k === 'end' ? ';color:var(--red)' : ''}">${t}</div></button>`).join('')}</div>`, false);
     if (!v) return;
     if (['overview', 'history', 'cards', 'settings', 'past', 'about'].includes(v)) return go(v);
     if (v === 'undo') return flowUndo();
     if (v === 'manual') return A.manual();
     if (v === 'wall') return flowWithdrawAll();
-    if (v === 'depall') return flowDepositAll();
-    if (v === 'tall') return flowTransferToOthers();
+    if (v === 'dall') return flowDepositAll();
+    if (v === 'tall') return flowTransferAll();
     if (v === 'end') {
       if (!await confirmBox('پایان بازی', [['بازی', esc(game().name)]], {msg: 'بازی تمام و با همه تراکنش‌ها در «بازی‌های قبلی» ذخیره می‌شود.', ok: 'پایان بازی', cls: 'red'})) return;
       const g = game(); g.status = 'finished'; g.end = Date.now(); save(); chime(); go('summary', {gid: g.id});
@@ -1004,16 +1001,16 @@ const A = {
   },
   manual: async () => { const g = game(); const v = await pickPlayer('انتخاب بازیکن', g.players); if (v != null) go('player', {pid: v}); },
   nfc: () => startNfc(),
-  dep: () => flowDeposit(ui.pid), wd: () => flowWithdraw(ui.pid), tr: () => flowTransfer(ui.pid), bk: d => flowBankruptcy(Number(d.pid)),
-  wall: () => flowWithdrawAll(), depall: () => flowDepositAll(), tall: () => flowTransferToOthers(),
+  dep: () => flowDeposit(ui.pid), wd: () => flowWithdraw(ui.pid), tr: () => flowTransfer(ui.pid),
+  wall: () => flowWithdrawAll(), dall: () => flowDepositAll(), tall: () => flowTransferAll(), bk: () => flowBankrupt(ui.pid),
   undo: d => flowUndo(d.pid != null ? Number(d.pid) : undefined),
   key: d => { const a = amt; a.pct = null; if (d.v === 'del') a.digits = a.digits.slice(0, -1); else { const nx = (a.digits + d.v).replace(/^0+/, ''); if (nx.length <= 13) a.digits = nx; } render(); },
   qadd: d => { const a = amt; const nx = parseInt(a.digits || '0', 10) + Number(d.v); if (String(nx).length <= 13) { a.digits = String(nx); a.pct = null; render(); } },
   pct: d => { const a = amt, p = P(game(), a.pid), x = Number(d.v), v = Math.floor(p.balance * x / 100); a.digits = v > 0 ? String(v) : ''; a.pct = x; render(); },
   amtok: () => { const a = amt, v = parseInt(a.digits || '0', 10); if (v > 0) { amt = null; a.done(v); } },
   amtcancel: () => { const a = amt; amt = null; a.done(null); go(a.pid != null && game() ? 'player' : 'home', {pid: a.pid}); },
-  unpend: () => { const pd = S.pending; clearPending(); go(pd?.kind === 'draftCard' ? 'newgame' : pd?.kind === 'transfer' ? 'player' : 'home', {pid: pd?.from}); },
-  waitpick: d => { const pd = S.pending; const pid = Number(d.v); if (pd.kind === 'transfer') finishTransfer(pd.from, pid, pd.amount); else finishTransferAll(pid); },
+  unpend: () => { const pd = S.pending; clearPending(); go(pd?.kind === 'draftCard' ? 'newgame' : pd?.kind === 'transfer' || pd?.kind === 'bankrupt' ? 'player' : 'home', {pid: pd?.from}); },
+  waitpick: d => { const pd = S.pending; const pid = Number(d.v); if (pd.kind === 'transfer') finishTransfer(pd.from, pid, pd.amount); else if (pd.kind === 'bankrupt') finishBankrupt(pd.from, pid); else finishTransferAll(pid); },
   draftpick: () => draftPickCard(),
   dadd: () => setPending({kind: 'draftCard', title: 'افزودن بازیکن', prompt: 'کارت بازیکن را نزدیک کنید', sub: 'یا کارت را از فهرست انتخاب کنید.'}),
   drm: d => { S.draft.players.splice(Number(d.v), 1); save(); render(); },
