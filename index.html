@@ -161,7 +161,7 @@ h2.sec{font-size:15px;color:var(--gold);margin:22px 4px 8px;font-weight:700}
 <script>
 (() => {
 'use strict';
-const VERSION = '1.1.0';
+const VERSION = '1.5.0';
 const KEY = 'mnp-web-v1';
 const MSG_INSUF = 'موجودی کافی نیست.';
 
@@ -346,8 +346,8 @@ async function keepAwake() {
 }
 
 // ───────── عملیات مالی ─────────
-const LABEL = {initial: 'موجودی اولیه', deposit: 'افزایش موجودی', withdraw: 'کاهش موجودی', transfer: 'انتقال', reversal: 'برگشت تراکنش'};
-const KIND = {withdraw_all: 'کاهش همگانی', transfer_all: 'انتقال همگانی', reversal: 'برگشت عملیات همگانی'};
+const LABEL = {initial: 'موجودی اولیه', deposit: 'افزایش موجودی', withdraw: 'کاهش موجودی', transfer: 'انتقال', reversal: 'برگشت تراکنش', bankruptcy: 'ورشکستگی'};
+const KIND = {withdraw_all: 'کاهش همگانی', deposit_all: 'افزایش همگانی', transfer_all: 'انتقال به بقیه', reversal: 'برگشت عملیات همگانی', bankruptcy_to_bank: 'ورشکستگی به بانک', bankruptcy_to_player: 'ورشکستگی به بازیکن'};
 const txLabel = t => KIND[t.kind] || LABEL[t.type];
 function move(g, o) {
   if (!Number.isInteger(o.amount) || o.amount <= 0) throw new MoneyError('مبلغ نامعتبر است.');
@@ -375,6 +375,28 @@ const opTransferAll = (from, a) => atomic(() => {
   if (!g.settings.allowNegative && P(g, from).balance < a * others.length) throw new MoneyError(MSG_INSUF);
   const batch = uuid(), at = Date.now();
   return others.map(p => move(g, {type: 'transfer', from, to: p.id, amount: a, batch, kind: 'transfer_all', at}));
+});
+const opDepositAll = a => atomic(() => {
+  const g = needGame();
+  const batch = uuid(), at = Date.now();
+  return g.players.map(p => move(g, {type: 'deposit', to: p.id, amount: a, batch, kind: 'deposit_all', at}));
+});
+const opTransferToOthers = (from, a) => atomic(() => {
+  const g = needGame(); const others = g.players.filter(p => p.id !== from);
+  if (!others.length) throw new MoneyError('بازیکن دیگری وجود ندارد.');
+  if (!g.settings.allowNegative && P(g, from).balance < a * others.length) throw new MoneyError(MSG_INSUF);
+  const batch = uuid(), at = Date.now();
+  return others.map(p => move(g, {type: 'transfer', from, to: p.id, amount: a, batch, kind: 'transfer_all', at}));
+});
+const opBankruptcy = (from, toId) => atomic(() => {
+  const g = needGame(); const p = P(g, from);
+  if (p.balance <= 0) throw new MoneyError('موجودی بازیکن صفر یا منفی است.');
+  if (toId == null) {
+    return move(g, {type: 'bankruptcy', from, amount: p.balance, kind: 'bankruptcy_to_bank'});
+  } else {
+    if (from === toId) throw new MoneyError('نمی‌توان به خودتان ورشکست کرد.');
+    return move(g, {type: 'bankruptcy', from, to: toId, amount: p.balance, kind: 'bankruptcy_to_player'});
+  }
 });
 const isReversed = (g, t) => g.txs.some(x => x.rev === t.id);
 function lastReversible(g, pid) {
@@ -481,7 +503,9 @@ R.home = () => {
   </div></div>
   <div class="foot"><div class="row">
     <button class="btn ghost red" data-a="wall">کاهش همگانی</button>
-    <button class="btn ghost blue" data-a="tall">انتقال همگانی</button></div>${ver}</div>`;
+    <button class="btn ghost green" data-a="depall">افزایش همگانی</button></div>
+  <div class="row">
+    <button class="btn ghost blue" data-a="tall">انتقال به بقیه</button></div>${ver}</div>`;
 };
 function readyHint() {
   if (hasWebNfc) return nfcOn ? 'منتظر کارت بازیکن…' : 'برای خواندن کارت، یک بار «روشن کردن NFC» را بزنید.';
@@ -506,6 +530,7 @@ R.player = () => {
       <button class="act" style="background:var(--red)" data-a="wd"><span>－</span>کاهش موجودی</button>
       <button class="act" style="background:var(--blue)" data-a="tr"><span>⇄</span>انتقال</button>
       <button class="act" style="background:var(--orange);color:#1a1a1a" data-a="go" data-to="history" data-pid="${p.id}"><span>☰</span>تاریخچه</button>
+      <button class="act" style="background:var(--red)" data-a="bk" data-pid="${p.id}"><span>💥</span>ورشکستگی</button>
     </div></div>`;
 };
 
@@ -588,11 +613,36 @@ function flowTransferAll() {
 async function finishTransferAll(from) {
   clearPending();
   const g = game(), f = P(g, from);
-  const a = await askAmount({title: `انتقال همگانی از ${f.name}`, color: 'var(--blue)', pid: from, sub: 'مبلغ برای هر بازیکن'}); if (!a) return;
+  const a = await askAmount({title: `انتقال به بقیه از ${f.name}`, color: 'var(--blue)', pid: from, sub: 'مبلغ برای هر بازیکن دیگر'}); if (!a) return;
   const others = g.players.filter(p => p.id !== from), total = a * others.length;
   if (!g.settings.allowNegative && f.balance < total) { await errorBox(`${MSG_INSUF} مجموع لازم: ${fmt(total)}`); return go('home'); }
-  if (!await confirmBox('تأیید انتقال همگانی', [['از', esc(f.name)], ['به', `<bdi class="num">${others.length}</bdi> بازیکن`], ['به هر نفر', money(a)], ['مجموع کسر', money(-total, true)], [`موجودی ${esc(f.name)}`, money(f.balance - total)]], {msg: esc(others.map(p => p.name).join('، ')), ok: 'انتقال به همه', cls: 'blue'})) return go('home');
-  run(() => opTransferAll(from, a), txs => ['انتقال همگانی انجام شد', [['از', esc(f.name)], ['به', `<bdi class="num">${txs.length}</bdi> بازیکن`], ['به هر نفر', money(a)], ['مجموع', money(total)], [`موجودی ${esc(f.name)}`, money(txs[txs.length - 1].sa)], ['زمان', stamp(txs[0].t)]]]);
+  if (!await confirmBox('تأیید انتقال به بقیه', [['از', esc(f.name)], ['به', `<bdi class="num">${others.length}</bdi> بازیکن`], ['به هر نفر', money(a)], ['مجموع کسر', money(-total, true)], [`موجودی ${esc(f.name)}`, money(f.balance - total)]], {msg: esc(others.map(p => p.name).join('، ')), ok: 'انتقال به بقیه', cls: 'blue'})) return go('home');
+  run(() => opTransferToOthers(from, a), txs => ['انتقال به بقیه انجام شد', [['از', esc(f.name)], ['به', `<bdi class="num">${txs.length}</bdi> بازیکن`], ['به هر نفر', money(a)], ['مجموع', money(total)], [`موجودی ${esc(f.name)}`, money(txs[txs.length - 1].sa)], ['زمان', stamp(txs[0].t)]]]);
+}
+async function flowDepositAll() {
+  const g = game(); if (!g || !g.players.length) return errorBox('بازیکنی در بازی وجود ندارد.');
+  const a = await askAmount({title: 'افزایش همگانی', color: 'var(--green)', sub: 'مبلغ اضافه به هر بازیکن'}); if (!a) return;
+  const total = a * g.players.length;
+  if (!await confirmBox('تأیید افزایش همگانی', [['بازیکنان', `<bdi class="num">${g.players.length}</bdi> نفر`], ['به هر نفر', money(a, true)], ['مجموع', money(total)]], {msg: esc(g.players.map(p => p.name).join('، ')), ok: 'افزایش به همه', cls: 'green'})) return go('home');
+  run(() => opDepositAll(a), txs => ['افزایش همگانی انجام شد', [['بازیکنان', `<bdi class="num">${txs.length}</bdi> نفر`], ['به هر نفر', money(a, true)], ['مجموع', money(total)], ['زمان', stamp(txs[0].t)]]]);
+}
+async function flowTransferToOthers() {
+  const g = game(); if (!g || g.players.length < 2) return errorBox('برای انتقال به بقیه حداقل دو بازیکن لازم است.');
+  setPending({kind: 'payerAll', title: 'انتقال به بقیه', prompt: 'کارت پرداخت‌کننده را نزدیک کنید', sub: 'پرداخت‌کننده به هر یک از بازیکنان دیگر پرداخت می‌کند.'});
+}
+async function flowBankruptcy(pid) {
+  const g = game(), p = P(g, pid);
+  if (p.balance <= 0) return errorBox('موجودی بازیکن صفر یا منفی است.');
+  const others = g.players.filter(x => x.id !== pid);
+  const v = await overlay(`<h3>ورشکستگی ${esc(p.name)}</h3><div class="list">${[
+    `<button class="item" data-a="close" data-v="bank"><span style="font-size:24px;width:34px;text-align:center">🏦</span><div class="grow"><div class="t">به بانک</div><div class="s">موجودی کل ${fmt(p.balance)} ${esc(cur())} از بین می‌رود</div></div></button>`,
+    ...others.map(o => `<button class="item" data-a="close" data-v="${o.id}"><span style="font-size:24px;width:34px;text-align:center">👤</span><div class="grow"><div class="t">${esc(o.name)}</div><div class="s">موجودی کل ${fmt(p.balance)} ${esc(cur())} به ${esc(o.name)} منتقل می‌شود</div></div></button>`)
+  ].join('')}</div><button class="btn ghost" style="margin-top:12px" data-a="close">لغو</button>`, false);
+  if (!v) return;
+  const toId = v === 'bank' ? null : Number(v);
+  const toLabel = toId == null ? 'بانک' : P(g, toId).name;
+  if (!await confirmBox('تأیید ورشکستگی', [['بازیکن ورشکسته', esc(p.name)], ['مبلغ', money(-p.balance, true)], ['به', esc(toLabel)], ['موجودی جدید ' + esc(p.name), money(0)], ...(toId ? [`موجودی جدید ${esc(toLabel)}`, money(P(g, toId).balance + p.balance)] : [])], {msg: toId == null ? `موجودی کل ${esc(p.name)} از بین می‌رود (به بانک).` : `موجودی کل ${esc(p.name)} به ${esc(toLabel)} منتقل می‌شود.`, ok: toId == null ? 'ورشکستگی به بانک' : 'ورشکستگی به ' + esc(toLabel), cls: 'red'})) return go('home');
+  run(() => opBankruptcy(pid, toId), t => ['ورشکستگی ثبت شد', [['بازیکن', esc(p.name)], ['مبلغ', money(-t.amount, true)], ['به', esc(toLabel)], ['موجودی ' + esc(p.name), money(t.sa)], ...(toId ? [`موجودی ${esc(toLabel)}`, money(t.ra)] : []), ['زمان', stamp(t.t)]]);
 }
 async function run(op, rc) {
   try { const r = op(); const [title, rows] = rc(r); receipt(title, rows); }
@@ -904,7 +954,8 @@ R.about = () => {
   const F = [['💳', 'کارتخوان بانکی', 'کارت بازیکن را نزدیک کنید تا نام، موجودی و آخرین تراکنش نمایش داده شود.'],
     ['＋', 'افزایش و کاهش موجودی', 'با صفحه‌کلید بزرگ، مبالغ آماده و دکمه‌های ۱۰، ۲۰ و ۳۰ درصد موجودی.'],
     ['⇄', 'انتقال بین بازیکنان', 'مبلغ، کارت گیرنده، تأیید. انتقال یا کامل انجام می‌شود یا اصلاً.'],
-    ['👥', 'کاهش و انتقال همگانی', 'کسر از همه بازیکنان، یا پرداخت یک بازیکن به همه بقیه.'],
+    ['👥', 'کاهش، افزایش و انتقال همگانی', 'کسر از همه، اضافه به همه، یا پرداخت یک بازیکن به بقیه.'],
+    ['💥', 'ورشکستگی بازیکن', 'کل موجودی یک بازیکن به بانک یا بازیکن دیگر منتقل می‌شود.'],
     ['🗂', 'بانک کارت‌ها', 'نام، کد، رنگ، طرح و شماره تماس هر کارت؛ کارت‌های تنظیم‌شده در اپ اندروید خودکار شناخته می‌شوند.'],
     ['↶', 'برگشت تراکنش', 'اشتباه‌ها با تراکنش معکوس اصلاح می‌شوند؛ چیزی پاک نمی‌شود.'],
     ['⏱', 'ساعت، تاریخ شمسی و زمان بازی', 'زمان بازی از لحظه واقعی شروع حساب می‌شود.'],
@@ -937,14 +988,15 @@ const A = {
   },
   menu: async () => {
     const v = await overlay(`<div class="list">${[['overview', 'موجودی همه بازیکنان'], ['history', 'تاریخچه کل بازی'], ['undo', 'برگشت آخرین تراکنش'], ['manual', 'انتخاب بازیکن از فهرست'],
-      ['wall', 'کاهش همگانی'], ['tall', 'انتقال همگانی'], ['cards', 'بانک کارت‌ها'], ['settings', 'تنظیمات'], ['past', 'بازی‌های قبلی'], ['about', 'درباره برنامه'], ['end', 'پایان بازی']]
+      ['wall', 'کاهش همگانی'], ['depall', 'افزایش همگانی'], ['tall', 'انتقال به بقیه'], ['cards', 'بانک کارت‌ها'], ['settings', 'تنظیمات'], ['past', 'بازی‌های قبلی'], ['about', 'درباره برنامه'], ['end', 'پایان بازی']]
       .map(([k, t]) => `<button class="item" data-a="close" data-v="${k}"><div class="grow t" style="font-weight:600${k === 'end' ? ';color:var(--red)' : ''}">${t}</div></button>`).join('')}</div>`, false);
     if (!v) return;
     if (['overview', 'history', 'cards', 'settings', 'past', 'about'].includes(v)) return go(v);
     if (v === 'undo') return flowUndo();
     if (v === 'manual') return A.manual();
     if (v === 'wall') return flowWithdrawAll();
-    if (v === 'tall') return flowTransferAll();
+    if (v === 'depall') return flowDepositAll();
+    if (v === 'tall') return flowTransferToOthers();
     if (v === 'end') {
       if (!await confirmBox('پایان بازی', [['بازی', esc(game().name)]], {msg: 'بازی تمام و با همه تراکنش‌ها در «بازی‌های قبلی» ذخیره می‌شود.', ok: 'پایان بازی', cls: 'red'})) return;
       const g = game(); g.status = 'finished'; g.end = Date.now(); save(); chime(); go('summary', {gid: g.id});
@@ -952,8 +1004,8 @@ const A = {
   },
   manual: async () => { const g = game(); const v = await pickPlayer('انتخاب بازیکن', g.players); if (v != null) go('player', {pid: v}); },
   nfc: () => startNfc(),
-  dep: () => flowDeposit(ui.pid), wd: () => flowWithdraw(ui.pid), tr: () => flowTransfer(ui.pid),
-  wall: () => flowWithdrawAll(), tall: () => flowTransferAll(),
+  dep: () => flowDeposit(ui.pid), wd: () => flowWithdraw(ui.pid), tr: () => flowTransfer(ui.pid), bk: d => flowBankruptcy(Number(d.pid)),
+  wall: () => flowWithdrawAll(), depall: () => flowDepositAll(), tall: () => flowTransferToOthers(),
   undo: d => flowUndo(d.pid != null ? Number(d.pid) : undefined),
   key: d => { const a = amt; a.pct = null; if (d.v === 'del') a.digits = a.digits.slice(0, -1); else { const nx = (a.digits + d.v).replace(/^0+/, ''); if (nx.length <= 13) a.digits = nx; } render(); },
   qadd: d => { const a = amt; const nx = parseInt(a.digits || '0', 10) + Number(d.v); if (String(nx).length <= 13) { a.digits = String(nx); a.pct = null; render(); } },
